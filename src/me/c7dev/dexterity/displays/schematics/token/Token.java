@@ -2,6 +2,8 @@ package me.c7dev.dexterity.displays.schematics.token;
 
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+
 import me.c7dev.dexterity.util.BinaryTag;
 
 /**
@@ -83,7 +85,7 @@ public class Token {
 			break;
 			
 		default: //doubles
-			r = new DoubleToken(type, Double.parseDouble(val));
+			r = new DoubleToken(type, Double.parseDouble(val.replace(',', '.')));
 		}
 		return r;
 	}
