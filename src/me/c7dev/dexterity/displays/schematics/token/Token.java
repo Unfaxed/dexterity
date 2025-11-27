@@ -75,7 +75,7 @@ public class Token {
 			break;
 		
 		case BLOCKDATA: //strings
-			if (!val.startsWith("minecraft:")); val = "minecraft:" + val; //only for blockdata
+			if (!val.startsWith("minecraft:")) val = "minecraft:" + val; //only for blockdata
 		case LABEL:
 			r = new StringToken(type, val);
 			break;

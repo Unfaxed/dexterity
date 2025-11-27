@@ -419,13 +419,13 @@ public class CommandHandler {
 		}
 		else if (args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("reset")) {
 			HashMap<String, Double> attrs_d = ct.getDoubleAttrs();
-			boolean set_scale = args.length < 3 || args[2].equals("scale");
-			double s = set_scale ? 1d : 0d;
-			double x = Math.abs(attrs_d.getOrDefault("x", attrs_d.getOrDefault("pitch", s))),
-					y = Math.abs(attrs_d.getOrDefault("y", attrs_d.getOrDefault("yaw", s))), 
-					z = Math.abs(attrs_d.getOrDefault("z", attrs_d.getOrDefault("roll", s)));
+			boolean setScale = args.length >= 3 && args[2].equals("scale");
+			double defaultParam = setScale ? 1d : 0d;
+			double x = Math.abs(attrs_d.getOrDefault("x", attrs_d.getOrDefault("pitch", defaultParam))),
+					y = Math.abs(attrs_d.getOrDefault("y", attrs_d.getOrDefault("yaw", defaultParam))), 
+					z = Math.abs(attrs_d.getOrDefault("z", attrs_d.getOrDefault("roll", defaultParam)));
 			
-			if (set_scale) {
+			if (setScale) {
 				Vector currScale = d.getScale();
 				if (x == 0) x = currScale.getX();
 				if (y == 0) y = currScale.getY();
@@ -442,8 +442,7 @@ public class CommandHandler {
 				session.updateAxisDisplays();
 				
 				p.sendMessage(getConfigString("axis-set-success", session).replaceAll("\\Q%type%\\E", "scale"));
-			} 
-			else if (args[2].equalsIgnoreCase("rotation")) {
+			} else if (!setScale || args[1].equalsIgnoreCase("reset")) {
 				RotationTransaction t = new RotationTransaction(d);
 				d.setBaseRotation((float) y, (float) x, (float) z);
 				t.commitEmpty();
@@ -451,8 +450,7 @@ public class CommandHandler {
 				session.updateAxisDisplays();
 				
 				p.sendMessage(getConfigString("axis-set-success", session).replaceAll("\\Q%type%\\E", "rotation"));
-			}
-			else {
+			} else {
 				p.sendMessage(plugin.getConfigString("unknown-input").replaceAll("\\Q%input%\\E", args[2]));
 				return;
 			}

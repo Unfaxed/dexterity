@@ -421,14 +421,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (argsr.length == 2) {
 				ret.add("show");
 				ret.add("off");
-				ret.add("set");
+				ret.add("reset");
 			}
-			else if (argsr.length >= 4 && argsr[1].equalsIgnoreCase("set")) {
+			else if (argsr.length >= 4 && (argsr[1].equalsIgnoreCase("set") || argsr[1].equalsIgnoreCase("reset"))) {
 				ret.add("x=");
 				ret.add("y=");
 				ret.add("z=");
 			}
-			else if (argsr[1].equalsIgnoreCase("show") || argsr[1].equalsIgnoreCase("set")) {
+			else if (argsr[1].equalsIgnoreCase("show") || argsr[1].equalsIgnoreCase("set") || argsr[1].equalsIgnoreCase("reset")) {
 				ret.add("rotation");
 				ret.add("scale");
 			}
