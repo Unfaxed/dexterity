@@ -1005,6 +1005,7 @@ public class CommandHandler {
 			return;
 		}
 		
+		api.unTempHighlight(d);
 		if (d.setLabel(args[1])) {
 			d.addOwner(p);
 			p.sendMessage(getConfigString("rename-success", session));

@@ -530,11 +530,9 @@ public class DexSession {
 				try {
 					double r = Double.parseDouble(perm.getPermission().replaceAll("dexterity\\.maxvolume\\.", ""));
 					if (r < plugin.getMaxVolume()) return r;
-					break;
 				} catch (Exception ex) {
-					Bukkit.getLogger().warning("Permission '" + perm.getPermission() + "' is invalid!");
-					break;
 				}
+				break;
 			}
 		}
 		return plugin.getMaxVolume();

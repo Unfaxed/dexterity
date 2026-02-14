@@ -26,6 +26,7 @@ public class SitAnimation extends Animation implements RideableAnimation, Listen
 	}
 	
 	private void spawnMount() {
+		removeMount();
 		mount = getDisplay().getPlugin().spawn(getDisplay().getCenter().add(seatOffset), ArmorStand.class, a -> {
 			a.setSilent(true);
 			a.setGravity(false);
@@ -48,18 +49,22 @@ public class SitAnimation extends Animation implements RideableAnimation, Listen
 	
 	public boolean mount(Player player) {
 		if (p != null) return false;
-		if (mount != null) mount.remove();
 		spawnMount();
 		p = player;
 		mount.addPassenger(player);
 		return true;
 	}
 	
+	private void removeMount() {
+		if (mount != null) mount.remove();
+		mount = null;
+	}
+	
 	public void dismount() {
 		if (p == null) return;
 		if (mount != null) {
 			mount.removePassenger(p);
-			mount.remove();
+			removeMount();
 		}
 	}
 	
@@ -97,7 +102,7 @@ public class SitAnimation extends Animation implements RideableAnimation, Listen
 	public void stop() {
 		super.kill();
 		p = null;
-		if (mount != null) mount.remove();
+		removeMount();
 		HandlerList.unregisterAll(this);
 	}
 
