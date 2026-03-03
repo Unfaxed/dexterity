@@ -15,7 +15,8 @@ public class DisplayTranslationEvent extends Event {
 	 * Event called when a selection is rotated, such as with a command or the API
 	 * 
 	 * @param display
-	 * @param rotation
+	 * @param from
+	 * @param to
 	 */
 	public DisplayTranslationEvent(DexterityDisplay display, Location from, Location to) {
 		this.from = from.clone();

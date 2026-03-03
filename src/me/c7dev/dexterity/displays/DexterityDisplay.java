@@ -99,7 +99,7 @@ public class DexterityDisplay {
 	 * @param center
 	 * @param scale Vector with the regular block size being [1, 1, 1]
 	 * @param label
-	 * @param owner
+	 * @param owners
 	 */
 	public DexterityDisplay(Dexterity plugin, Location center, Vector scale, String label, List<OfflinePlayer> owners) {
 		this.plugin = plugin;
@@ -170,7 +170,7 @@ public class DexterityDisplay {
 	
 	/**
 	 * Sets the players that own this display
-	 * @param u
+	 * @param newOwners
 	 */
 	public void setOwners(List<OfflinePlayer> newOwners) {
 		owners = new ArrayList<>();
@@ -915,7 +915,7 @@ public class DexterityDisplay {
 	/**
 	 * Skew by a multiplier along x, y, and z, respectively
 	 * @param v
-	 * @throws {@link DexterityException} if skewing a selection with more than 1 rotation orientation, as it is impossible to create parallelograms
+	 * @throws DexterityException if skewing a selection with more than 1 rotation orientation, as it is impossible to create parallelograms
 	 */
 	public void scale(Vector v) {
 		if (blocks.size() == 0) return;

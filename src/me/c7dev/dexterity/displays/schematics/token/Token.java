@@ -8,7 +8,7 @@ import me.c7dev.dexterity.util.BinaryTag;
 
 /**
  * Saves a particular attribute of the DexterityDisplay
- * Can be reused in multiple DexBlocks that share the same type & value token attribute
+ * Can be reused in multiple DexBlocks that share the same type and value token attribute
  * Each token is then given a BinaryTag in the Huffman coding step
  */
 public class Token {

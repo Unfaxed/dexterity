@@ -8,7 +8,7 @@
 
 <hr>
 
-## [Download](https://www.spigotmc.org/resources/118489/) | [Wiki](https://github.com/standardProton/dexterity_wiki/wiki) | [Donate](https://paypal.me/c7dev) | [Java Docs](https://standardproton.github.io/dexterity_wiki/me/c7dev/dexterity/api/DexterityAPI.html) | [Discord](https://discord.gg/yx9hUByTzq)
+## [Download](https://www.spigotmc.org/resources/118489/) | [Wiki](https://github.com/Unfaxed/dexterity_wiki/wiki) | [Donate](https://paypal.me/c7dev) | [Java Docs](https://Unfaxed.github.io/dexterity_wiki/me/c7dev/dexterity/api/DexterityAPI.html) | [Discord](https://discord.gg/yx9hUByTzq)
 
 ![Cafe Scene](https://dexterity.s3.us-east-2.amazonaws.com/v153jd/restaurant2.png)
 

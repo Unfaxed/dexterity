@@ -14,7 +14,7 @@ public class AnimationEndEvent extends Event {
 	
 	/**
 	 * Event called when a display's animation terminates
-	 * @param p_ The player involved, if there is one (such as for {@link RideAnimation})
+	 * @param p_ The player involved, if there is one (such as for RideAnimation)
 	 * @param a_
 	 */
 	public AnimationEndEvent(Player p_, Animation a_) {

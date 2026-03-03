@@ -5,7 +5,7 @@ import org.joml.Quaterniond;
 import me.c7dev.dexterity.transaction.RotationTransaction;
 
 /**
- * Holds the data queued for a pending rotation in {@link DexRotation}
+ * Holds the data queued for a pending rotation in DexRotation
  */
 public class QueuedRotation {
 	
