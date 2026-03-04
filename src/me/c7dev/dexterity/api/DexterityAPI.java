@@ -14,7 +14,6 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
@@ -22,14 +21,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.Matrix3d;
-import org.joml.Matrix3f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import me.c7dev.dexterity.DexSession;
 import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.displays.DexterityDisplay;
+import me.c7dev.dexterity.interaction.DexClickDetector;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.util.ClickedBlock;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
@@ -47,19 +45,6 @@ public class DexterityAPI {
 	private HashMap<UUID, Integer> pidMap = new HashMap<>();
 	private List<UUID> markerPoints = new ArrayList<>();
 	private int pid_ = Integer.MIN_VALUE + 1; //min val reserved for getOrDefault
-	private final HashMap<OrientationKey, RollOffset> rollOffsets = new HashMap<>();
-	private final HashMap<OrientationKey, Vector[]> axes = new HashMap<>();
-	private final Vector[][] basisVecsNoRot = getBasisVecs(new Matrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1));
-	private final Vector eastUnit = new Vector(1, 0, 0), upUnit = new Vector(0, 1, 0), southUnit = new Vector(0, 0, 1);
-	
-	private BlockFace[] faces = {
-			BlockFace.UP,
-			BlockFace.DOWN,
-			BlockFace.SOUTH,
-			BlockFace.NORTH,
-			BlockFace.EAST,
-			BlockFace.WEST
-	};
 	
 	private int getNewPID() {
 		int p = pid_;
@@ -70,23 +55,6 @@ public class DexterityAPI {
 	
 	public DexterityAPI(Dexterity plugin) {
 		this.plugin = plugin;
-		
-		long msDelete = 30*1000;
-		
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				List<OrientationKey> toRemove = new ArrayList<>();
-				long time = System.currentTimeMillis();
-				
-				for (OrientationKey key : rollOffsets.keySet()) if (time - key.getLastUsedTime() >= msDelete) toRemove.add(key);
-				for (OrientationKey key : toRemove) rollOffsets.remove(key);
-				toRemove.clear();
-				
-				for (OrientationKey key : axes.keySet()) if (time - key.getLastUsedTime() >= msDelete) toRemove.add(key);
-				for (OrientationKey key : toRemove) axes.remove(key);
-			}
-		}.runTaskTimer(plugin, 0, msDelete*20l/1000);
 	}
 	
 	/**
@@ -240,175 +208,18 @@ public class DexterityAPI {
 		return f.exists();
 	}
 	
-	private Vector[][] getBasisVecs(Matrix3d mat) {
-		Vector a = new Vector(mat.m00, mat.m01, mat.m02).normalize(), 
-				b = new Vector(mat.m10, mat.m11, mat.m12).normalize(), 
-				c = new Vector(mat.m20, mat.m21, mat.m22).normalize();
-		Vector[][] basisVecs = {{a, c}, {a, c}, {a, b}, {a.clone().multiply(-1), b}, {c.clone().multiply(-1), b}, {c, b}};
-		return basisVecs;
-	}
 	
-	private Vector[][] getBasisVecs(Vector a, Vector b, Vector c){
-		Vector[][] basisVecs = {{a, c}, {a, c}, {a, b}, {a.clone().multiply(-1), b}, {c.clone().multiply(-1), b}, {c, b}};
-		return basisVecs;
-	}
 	
 	/**
 	 * Calculates the precise block display entity that the player is currently looking at with their cursor
 	 * 
-	 * @param p
+	 * @param p Player
 	 * @return Unmodifiable data object containing the entity, entity's center, block face, location on the block face, and basis vectors.
 	 * @return Null if the player is not looking at any block display in range
 	 */
 	public ClickedBlockDisplay getLookingAt(Player p) {
-		if (p == null) throw new IllegalArgumentException("Player cannot be null!");
-		List<Entity> near = p.getNearbyEntities(4, 4, 4);
-		Vector dir = p.getLocation().getDirection();
-		Vector eyeLoc = p.getEyeLocation().toVector();
-		double minDist = Double.MAX_VALUE;
-		ClickedBlockDisplay nearest = null;
-				
-		bdLoop: for (Entity entity : near) {
-			if (!(entity instanceof BlockDisplay) || markerPoints.contains(entity.getUniqueId())) continue;
-			BlockDisplay e = (BlockDisplay) entity;
-			Vector scaleRaw = DexUtils.vector(e.getTransformation().getScale());
-			if (scaleRaw.getX() < 0 || scaleRaw.getY() < 0 || scaleRaw.getZ() < 0) continue; //TODO figure out displacement to center
-			scaleRaw.multiply(0.5);
-			Vector scale = DexUtils.hadimard(DexUtils.getBlockDimensions(e.getBlock()), scaleRaw);
-			
-			//check if the player is looking in the general direction of the block, accounting for scale
-			Vector diff = e.getLocation().toVector().subtract(eyeLoc).normalize();
-			double dot = diff.dot(dir);
-			if (dot < (-0.375*scale.lengthSquared()) + 0.75) continue; //TODO: taylor series to improve the approximation
-			
-			Vector upDir, southDir, eastDir;
-			Vector[][] basisVecs;
-			DexBlock db = plugin.getMappedDisplay(e.getUniqueId());
-			
-			//calculate roll and its offset
-			RollOffset ro = null;
-			Location loc;
-			if (db == null) {
-				Vector displacement = DexUtils.vector(e.getTransformation().getTranslation());
-				if (e.getTransformation().getLeftRotation().w != 0) {
-					OrientationKey key = new OrientationKey(e.getTransformation().getScale().x, 
-							e.getTransformation().getScale().y,
-							e.getTransformation().getLeftRotation());
-					ro = rollOffsets.get(key); //does not account for pitch and yaw built into the rotation quaternion, assumed that blocks managed by other plugins are not built on
-					if (ro == null) {
-						ro = new RollOffset(e.getTransformation().getLeftRotation(), DexUtils.vector(e.getTransformation().getScale()));
-						rollOffsets.put(key, ro);
-					}
-					displacement.subtract(ro.getOffset());
-				}
-				loc = e.getLocation().add(displacement).add(scaleRaw);
-			} else {
-				loc = db.getLocation(); //already handled by DexTransformation
-			}
-			
-			//if rotated, we need to transform the displacement vecs and basis vectors accordingly
-			if (e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || e.getTransformation().getLeftRotation().w != 1) {
-				
-				OrientationKey key = new OrientationKey(e.getLocation().getYaw(), e.getLocation().getPitch(), e.getTransformation().getLeftRotation());
-				Vector[] res = axes.get(key);
-				if (res == null) {
-					Vector3f east_dir_d = new Vector3f(1, 0, 0), up_dir_d = new Vector3f(0, 1, 0), south_dir_d = new Vector3f(0, 0, 1);
-					Quaternionf q = DexUtils.cloneQ(e.getTransformation().getLeftRotation());
-					q.z = -q.z;
-					q.rotateX((float) -Math.toRadians(e.getLocation().getPitch()));
-					q.rotateY((float) Math.toRadians(e.getLocation().getYaw()));
-
-					q.transformInverse(east_dir_d);
-					q.transformInverse(up_dir_d);
-					q.transformInverse(south_dir_d);
-
-					eastDir = DexUtils.vector(east_dir_d);
-					upDir = DexUtils.vector(up_dir_d);
-					southDir = DexUtils.vector(south_dir_d);
-					basisVecs = getBasisVecs(eastDir, upDir, southDir);
-					
-					Vector[] res2 = {eastDir, upDir, southDir};
-					axes.put(key, res2);
-					
-				} else {
-					eastDir = res[0];
-					upDir = res[1];
-					southDir = res[2];
-					basisVecs = getBasisVecs(eastDir, upDir, southDir);
-				}
-			} else {
-				eastDir = eastUnit;
-				upDir = upUnit;
-				southDir = southUnit;
-				basisVecs = basisVecsNoRot;
-			}
-
-			//calculate location of visual display accounting for axis asymmetry
-			loc.add(upDir.clone().multiply(scale.getY() - scaleRaw.getY()));
-			Vector locv = loc.toVector();
-
-			//block face centers
-			Vector up = locv.clone().add(upDir.clone().multiply(scale.getY())), 
-					down = locv.clone().add(upDir.clone().multiply(-scale.getY())),
-					south = locv.clone().add(southDir.clone().multiply(scale.getZ())), 
-					north = locv.clone().add(southDir.clone().multiply(-scale.getZ())),
-					east = locv.clone().add(eastDir.clone().multiply(scale.getX())), 
-					west = locv.clone().add(eastDir.clone().multiply(-scale.getX()));
-
-			Vector[] locs = {up, down, south, north, east, west};
-						
-			boolean firstFace = false; //always intersects 2 faces - convex
-			for (int i = 0; i < locs.length; i++) {
-				if (!firstFace && i == locs.length - 1) continue bdLoop; //not looking at this block, no need to check last face
-				
-				Vector basis1 = basisVecs[i][0], basis2 = basisVecs[i][1];
-								
-				// Solve `(FaceCenter) + a(basis1) + b(basis2) = c(dir) + (EyeLoc)` to find intersection of block face plane
-				Vector L = eyeLoc.clone().subtract(locs[i]);
-				Matrix3f matrix = new Matrix3f(
-						(float) basis1.getX(), (float) basis1.getY(), (float) basis1.getZ(),
-						(float) basis2.getX(), (float) basis2.getY(), (float) basis2.getZ(),
-						(float) dir.getX(), (float) dir.getY(), (float) dir.getZ()
-						);
-				matrix.invert();
-				Vector3f cf = new Vector3f();
-				Vector soln = DexUtils.vector(matrix.transform(DexUtils.vector(L), cf));
-				double dist = -soln.getZ(); //distance from player's eye to precise location on surface in units of blocks (magic :3)
-				if (dist < 0) continue; //behind head
-				
-				switch(i) { //check within block face
-				case 0:
-				case 1:
-					if (Math.abs(soln.getX()) > scale.getX()) continue;
-					if (Math.abs(soln.getY()) > scale.getZ()) continue;
-					break;
-				case 2:
-				case 3:
-					if (Math.abs(soln.getX()) > scale.getX()) continue;
-					if (Math.abs(soln.getY()) > scale.getY()) continue;
-					break;
-				default:
-					if (Math.abs(soln.getX()) > scale.getZ()) continue;
-					if (Math.abs(soln.getY()) > scale.getY()) continue;
-				}
-				
-				if (dist < minDist) {
-					Vector rawOffset = basis1.clone().multiply(soln.getX())
-							.add(basis2.clone().multiply(soln.getY()));
-					Vector blockoffset = locs[i].clone().add(rawOffset); //surface location
-					
-					minDist = dist;
-					nearest = new ClickedBlockDisplay(e, faces[i], rawOffset, DexUtils.location(loc.getWorld(), blockoffset), 
-							loc, upDir, eastDir, southDir, dist);
-					if (ro != null) nearest.setRollOffset(ro);
-				}
-				
-				if (firstFace) continue bdLoop;
-				else firstFace = true;
-			}	
-		}
-		
-		return nearest;
+		DexClickDetector click = new DexClickDetector(this, plugin.getClickDataCache());
+		return click.getLookingAt(p);
 	}
 	
 	/**
@@ -481,6 +292,24 @@ public class DexterityAPI {
 		clone.setBlocks(blocks, false);
 		
 		return clone;
+	}
+	
+	/**
+	 * Check if an entity is a Dexterity marker point
+	 * @param entity
+	 * @return
+	 */
+	public boolean isMarkerPoint(Entity entity) {
+		return isMarkerPoint(entity.getUniqueId());
+	}
+	
+	/**
+	 * Check if an entity UUID is a Dexterity marker point
+	 * @param uuid
+	 * @return
+	 */
+	public boolean isMarkerPoint(UUID uuid) {
+		return markerPoints.contains(uuid);
 	}
 	
 	/**

@@ -7,11 +7,11 @@ import org.bukkit.util.Vector;
 
 public class ClickedBlockDisplay {
 	
-	private BlockDisplay b;
-	private BlockFace bf_;
-	private Vector offset_, normal_, up_dir_, east_dir_, south_dir_;
-	private Location loc_, center_;
-	private double dist_;
+	private BlockDisplay block;
+	private BlockFace blockFace;
+	private Vector offset, normal, upDir, eastDir, southDir;
+	private Location loc, center;
+	private double distance;
 	private RollOffset ro = null;
 	
 	private Vector getNormal(BlockFace f, Vector up, Vector east, Vector south) {
@@ -28,28 +28,37 @@ public class ClickedBlockDisplay {
 	
 	public ClickedBlockDisplay(BlockDisplay block, BlockFace blockFace, Vector offset, Location loc, Location centerLoc, 
 			Vector up_dir, Vector east_dir, Vector south_dir, double dist) {
-		b = block;
-		bf_ = blockFace;
-		offset_ = offset;
-		loc_ = loc;
-		center_ = centerLoc;
-		up_dir_ = up_dir.normalize();
-		east_dir_ = east_dir.normalize();
-		south_dir_ = south_dir.normalize();
-		normal_ = getNormal(blockFace, up_dir, east_dir, south_dir);
-		dist_ = dist;
+		this.block = block;
+		this.blockFace = blockFace;
+		this.offset = offset;
+		this.loc = loc;
+		this.center = centerLoc;
+		this.upDir = up_dir.normalize();
+		this.eastDir = east_dir.normalize();
+		this.southDir = south_dir.normalize();
+		this.normal = getNormal(blockFace, up_dir, east_dir, south_dir);
+		this.distance = dist;
 	}
 	
 	public void setRollOffset(RollOffset ro) {
+		if (this.ro != null) throw new RuntimeException("Cannot set roll offset twice");
 		this.ro = ro;
 	}
 	
+	/**
+	 * The raw display entity that was clicked
+	 * @return
+	 */
 	public BlockDisplay getBlockDisplay() {
-		return b;
+		return block;
 	}
 	
+	/**
+	 * Which face of the block display was clicked, accounting for rotation of the block display
+	 * @return
+	 */
 	public BlockFace getBlockFace() {
-		return bf_;
+		return blockFace;
 	}
 	
 	/**
@@ -57,7 +66,7 @@ public class ClickedBlockDisplay {
 	 * @return Unmodifiable vector
 	 */
 	public Vector getOffsetFromFaceCenter() {
-		return offset_.clone();
+		return offset.clone();
 	}
 	
 	/**
@@ -65,7 +74,7 @@ public class ClickedBlockDisplay {
 	 * @return Unmodifiable location
 	 */
 	public Location getClickLocation() {
-		return loc_.clone();
+		return loc.clone();
 	}
 	
 	/**
@@ -73,7 +82,7 @@ public class ClickedBlockDisplay {
 	 * @return Unmodifiable location
 	 */
 	public Location getDisplayCenterLocation() {
-		return center_.clone();
+		return center.clone();
 	}
 	
 	/**
@@ -81,7 +90,7 @@ public class ClickedBlockDisplay {
 	 * @return Unmodifiable unit vector
 	 */
 	public Vector getNormal() {
-		return normal_.clone();
+		return normal.clone();
 	}
 	
 	/**
@@ -89,7 +98,7 @@ public class ClickedBlockDisplay {
 	 * @return Unmodifiable unit vector
 	 */
 	public Vector getUpDir() {
-		return up_dir_.clone();
+		return upDir.clone();
 	}
 	
 	/**
@@ -97,7 +106,7 @@ public class ClickedBlockDisplay {
 	 * @return Unmodifiable unit vector
 	 */
 	public Vector getEastDir() {
-		return east_dir_.clone();
+		return eastDir.clone();
 	}
 	
 	/**
@@ -105,7 +114,7 @@ public class ClickedBlockDisplay {
 	 * @return Unmodifiable unit vector
 	 */
 	public Vector getSouthDir() {
-		return south_dir_.clone();
+		return southDir.clone();
 	}
 	
 	/**
@@ -113,7 +122,7 @@ public class ClickedBlockDisplay {
 	 * @return
 	 */
 	public double getDistance() {
-		return dist_;
+		return distance;
 	}
 	
 	/**

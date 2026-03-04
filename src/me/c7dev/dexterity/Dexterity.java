@@ -44,6 +44,7 @@ import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.command.DexterityCommand;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.displays.animation.SitAnimation;
+import me.c7dev.dexterity.interaction.ClickDataCache;
 import me.c7dev.dexterity.util.AxisPair;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
 import me.c7dev.dexterity.util.DexBlock;
@@ -71,6 +72,7 @@ public class Dexterity extends JavaPlugin {
 	private WorldEditPlugin we = null;
 	private boolean legacy = false, hasUnloadedDisplays = false;
 	private Material wandItem;
+	private ClickDataCache clickCache;
 	
 	public static final String defaultLangName = "en-US.yml";
 		
@@ -82,6 +84,7 @@ public class Dexterity extends JavaPlugin {
 			return;
 		}
 		api = new DexterityAPI(this);
+		clickCache = new ClickDataCache(this);
 		
 		loadConfigSettings();		
 		
@@ -134,6 +137,10 @@ public class Dexterity extends JavaPlugin {
 	
 	public DexterityAPI api() {
 		return api;
+	}
+	
+	public ClickDataCache getClickDataCache() {
+		return clickCache;
 	}
 	
 	public static DexterityAPI getAPI() {

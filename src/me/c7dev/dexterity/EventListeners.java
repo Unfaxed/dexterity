@@ -10,15 +10,12 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.Bisected;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.block.data.type.TrapDoor;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
@@ -33,21 +30,15 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
-import me.c7dev.dexterity.api.events.PlayerClickBlockDisplayEvent;
 import me.c7dev.dexterity.api.events.TransactionCompletionEvent;
 import me.c7dev.dexterity.api.events.TransactionEvent;
 import me.c7dev.dexterity.api.events.TransactionRedoEvent;
 import me.c7dev.dexterity.api.events.TransactionUndoEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
-import me.c7dev.dexterity.displays.animation.Animation;
-import me.c7dev.dexterity.displays.animation.RideableAnimation;
 import me.c7dev.dexterity.displays.schematics.Schematic;
+import me.c7dev.dexterity.interaction.DexClickHandler;
 import me.c7dev.dexterity.transaction.RemoveTransaction;
-import me.c7dev.dexterity.util.ClickedBlock;
-import me.c7dev.dexterity.util.ClickedBlockDisplay;
-import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
-import me.c7dev.dexterity.util.InteractionCommand;
 
 public class EventListeners implements Listener {
 	
@@ -72,150 +63,12 @@ public class EventListeners implements Listener {
 		}.runTaskLater(plugin, (int) (delay*0.02));
 		return false;
 	}
-		
+	
 	@EventHandler
 	public void onBlockClick(PlayerInteractEvent e) {
-		
-		if (!e.getPlayer().hasPermission("dexterity.click") && !e.getPlayer().hasPermission("dexterity.build")) return;
-			
 		if (clickDelay(e.getPlayer().getUniqueId())) return;
-		boolean rightClick = e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK;
-
-		//calculate if player clicked a block display
-		ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
-		ClickedBlockDisplay clicked = (DexUtils.isAllowedMaterial(hand.getType()) || !rightClick || hand.getType() == Material.AIR) ? plugin.api().getLookingAt(e.getPlayer()) : null;
-
-		ClickedBlock clickedBlockData = plugin.api().getPhysicalBlockLookingAtRaw(e.getPlayer(), 0.1, clicked == null ? 5 : clicked.getDistance());
-		if (clickedBlockData != null && clickedBlockData.getBlock().getType() == Material.AIR) clickedBlockData = null;
-		
-		boolean clickedBlock = rightClick;
-		if (clicked != null) clickedBlock = clickedBlockData != null && clickedBlockData.getBlock().getLocation().distance(e.getPlayer().getEyeLocation()) < clicked.getDistance();
-		
-		DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
-		DexterityDisplay clickedDisplay = null;
-		DexBlock clickedDB = null;
-		boolean holdingWand = hand.getType() == Material.WOODEN_AXE || (hand.getType() == plugin.getWandType() && hand.getItemMeta().getDisplayName().equals(plugin.getConfigString("wand-title", "§fDexterity Wand")));
-
-		if (clicked != null) {
-			if (clicked.getBlockDisplay().getMetadata("dex-ignore").size() > 0) return;
-
-			clickedDB = plugin.getMappedDisplay(clicked.getBlockDisplay().getUniqueId());
-			if (clickedDB != null) clickedDisplay = clickedDB.getDexterityDisplay();
-		}
-		
-		//normal player or saved display click
-		if (clickedDisplay != null && clickedDisplay.isSaved() && (!holdingWand || !e.getPlayer().hasPermission("dexterity.build"))) {
-			if (clicked == null || clickedBlock) return;
-			//click a display as normal player or with nothing in hand
-			RideableAnimation ride = (RideableAnimation) clickedDisplay.getAnimation(RideableAnimation.class);
-			e.setCancelled(true);
-
-			//drop display item
-			if (clickedDisplay.getDropItem() != null && !rightClick && clickedDisplay.hasOwner(e.getPlayer())) {
-				if (e.getPlayer().getGameMode() == GameMode.CREATIVE && e.getPlayer().getInventory().containsAtLeast(clickedDisplay.getDropItem(), 1)) {
-					clickedDisplay.remove();
-				}
-				else clickedDisplay.dropNaturally();
-				BlockData bdata = Bukkit.createBlockData(clickedDisplay.getDropItem().getType());
-				e.getPlayer().playSound(clickedDisplay.getCenter(), bdata.getSoundGroup().getBreakSound(), 1f, 1f);
-			}
-			//seat or ride
-			else if (ride != null && ride.getMountedPlayer() == null) {
-				ride.mount(e.getPlayer());
-				Animation anim = (Animation) ride;
-				anim.start();
-			}
-
-			InteractionCommand[] cmds = clickedDisplay.getCommands();
-			if (cmds.length == 0) {
-				if ((e.getPlayer().hasPermission("dexterity.buid") || e.getPlayer().hasPermission("dexterity.command.cmd"))
-						&& clickedDisplay.hasOwner(e.getPlayer()) && clickedDisplay.getDropItem() == null) {
-					session.clickMsg();
-				}
-			} else for (InteractionCommand cmd : cmds) cmd.exec(e.getPlayer(), rightClick);
-			
-		}
-		else if (e.getPlayer().hasPermission("dexterity.build")) {
-			//wand click
-			if (holdingWand) {
-				e.setCancelled(true);
-
-				//select display with wand
-				if (!clickedBlock && clickedDisplay != null && clickedDisplay.getLabel() != null) {
-					session.setSelected(clickedDisplay, true);
-					return;
-				}
-
-				boolean msg = hand.getType() != Material.WOODEN_AXE || e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_AIR;
-				if (clicked != null && !clickedBlock) { //click block with wand (set pos1 or pos2)
-					boolean is_l1 = !rightClick;
-					Vector scale = DexUtils.hadimard(DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()), DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock()));
-					session.setContinuousLocation(clicked.getDisplayCenterLocation(), is_l1, scale, msg);
-				} else if (e.getClickedBlock() != null) {
-					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true, msg); //pos1
-					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false, msg); //pos2
-				}
-				return;
-			} 
-
-			//break or place block display
-			else {
-				if (clicked == null || clickedBlock) return;
-				e.setCancelled(true);
-
-				if (clickedDisplay != null && !clickedDisplay.hasOwner(e.getPlayer())) return;
-
-				//send event
-				PlayerClickBlockDisplayEvent clickEvent = new PlayerClickBlockDisplayEvent(e.getPlayer(), clicked, e.getAction(), clickedDisplay);
-				Bukkit.getPluginManager().callEvent(clickEvent);
-				if (clickEvent.isCancelled()) return;
-
-				//place a block display
-				if (rightClick) {
-					if (hand.getType() != Material.AIR) {
-
-						BlockData bdata;
-						switch(hand.getType()) {
-						case NETHER_STAR:
-							bdata = Bukkit.createBlockData(Material.NETHER_PORTAL);
-							break;
-						case FLINT_AND_STEEL:
-							bdata = Bukkit.createBlockData(Material.FIRE);
-							break;
-						default:
-							if (hand.getType() == clicked.getBlockDisplay().getBlock().getMaterial()) bdata = clicked.getBlockDisplay().getBlock();
-							else {
-								try {
-									bdata = Bukkit.createBlockData(hand.getType());
-								} catch (Exception ex) {
-									return;
-								}
-							}
-						}
-						
-						BlockDisplay b = plugin.putBlock(clicked, bdata);
-						
-						if (b != null) {
-							e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
-							
-							DexBlock new_db = plugin.getMappedDisplay(b.getUniqueId());
-							if (clickedDisplay != null && session != null && new_db != null) session.pushBlock(new_db, true);
-						}
-					}
-
-				} else { //break a block display
-					e.getPlayer().playSound(clicked.getBlockDisplay().getLocation(), clicked.getBlockDisplay().getBlock().getSoundGroup().getBreakSound(), 1f, 1f);
-
-					if (clickedDB == null) clicked.getBlockDisplay().remove();
-					else {
-						if (session != null) session.pushBlock(clickedDB, false);
-						clickedDB.remove();
-					}
-				}
-			}
-		}
+		new DexClickHandler(plugin, e);
 	}
-	
 	
 	@EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true) //placing display item
 	public void onPlace(BlockPlaceEvent e) {

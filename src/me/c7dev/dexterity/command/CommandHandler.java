@@ -566,8 +566,8 @@ public class CommandHandler {
 		if (session.getSelected() != null) {
 			session.setSelected(null, false);
 			session.clearLocationSelection();
-			ct.getPlayer().sendMessage(plugin.getConfigString("desel-success"));
 		}
+		ct.getPlayer().sendMessage(plugin.getConfigString("desel-success"));
 	}
 	
 	public void highlight(CommandContext ct) {
