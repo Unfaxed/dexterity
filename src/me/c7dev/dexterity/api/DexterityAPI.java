@@ -13,6 +13,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
@@ -27,6 +28,7 @@ import org.joml.Vector3f;
 import me.c7dev.dexterity.DexSession;
 import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.displays.DexterityDisplay;
+import me.c7dev.dexterity.displays.schematics.Schematic;
 import me.c7dev.dexterity.interaction.DexClickDetector;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.util.ClickedBlock;
@@ -208,7 +210,14 @@ public class DexterityAPI {
 		return f.exists();
 	}
 	
-	
+	/**
+	 * Load a schematic by its name. Reads and decompresses the file from the schematics folder
+	 * @param name
+	 * @return
+	 */
+	public Schematic loadSchematic(String name) {
+		return Schematic.loadSchematicByName(plugin, name);
+	}
 	
 	/**
 	 * Calculates the precise block display entity that the player is currently looking at with their cursor

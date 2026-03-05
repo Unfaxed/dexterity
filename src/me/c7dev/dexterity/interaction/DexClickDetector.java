@@ -69,22 +69,15 @@ public class DexClickDetector {
 	
 	/**
 	 * Get the data about a block display that a direction vector points to given the camera's location vector and nearby entities
-	 * @param near
 	 * @param dir Unit direction vector
-	 * @param eyeLoc
+	 * @param eyeLoc Location of player's eye
+	 * @param nearbyEntities List of all entities to search through
 	 * @return
 	 */
 	public ClickedBlockDisplay getLookingAt(Vector dir, Location eyeLoc, List<Entity> nearbyEntities) {
 		return getLookingAt(dir.clone().normalize(), eyeLoc.toVector(), nearbyEntities);
 	}
 	
-	/**
-	 * Get the data about a block display that a direction vector points to given the camera's location vector and nearby entities
-	 * @param dir
-	 * @param eyeLoc
-	 * @param nearbyEntities
-	 * @return
-	 */
 	private ClickedBlockDisplay getLookingAt(Vector dir, Vector eyeLoc, List<Entity> nearbyEntities) {
 		this.dir = dir;
 		this.eyeLoc = eyeLoc;

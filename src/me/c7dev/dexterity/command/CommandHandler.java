@@ -1189,7 +1189,7 @@ public class CommandHandler {
 			DexterityDisplay d;
 			Schematic schem;
 			try {
-				schem = new Schematic(plugin, name);
+				schem = api.loadSchematic(name);
 				d = schem.paste(p.getLocation());
 				d.addOwner(p);
 			} catch (Exception ex) {

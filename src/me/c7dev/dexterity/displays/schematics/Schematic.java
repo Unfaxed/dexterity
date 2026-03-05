@@ -51,10 +51,15 @@ public class Schematic {
 		GET_TAG,
 		SEEK_VALUE, //until delimiter
 	}
+	
+	public static Schematic loadSchematicByName(Dexterity plugin, String name) {
+		return new Schematic(plugin, name);
+	}
 
+	@Deprecated
 	public Schematic(Dexterity plugin, String file_name) {
 		this.fileName = file_name;
-		if (!file_name.endsWith("\\.dexterity")) file_name += ".dexterity";
+		if (!file_name.endsWith(".dexterity")) file_name += ".dexterity";
 		this.plugin = plugin;
 		try {
 			sha256 = MessageDigest.getInstance("SHA-256");
