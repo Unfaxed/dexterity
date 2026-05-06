@@ -26,6 +26,8 @@ import org.joml.Vector3f;
 
 import com.sk89q.worldedit.math.BlockVector3;
 
+import me.c7dev.dexterity.Dexterity;
+
 /**
  * Defines commonly used static methods used globally in the plugin or API
  */
@@ -102,8 +104,6 @@ public class DexUtils {
 	public static String attrAlias(String s) {
 		switch(s.toLowerCase()) {
 		case "r": return "radius";
-		case "g": return "granularity";
-		case "f": return "filled";
 		case "east": return "x";
 		case "west": return "x";
 		case "up": return "y";
@@ -119,12 +119,10 @@ public class DexUtils {
 		case "true": return 1;
 		case "yes": return 1;
 		case "y": return 1;
-		case "filled": return 1;
 		case "t": return 1;
 		case "false": return 0;
 		case "no": return 0;
 		case "n": return 0;
-		case "unfilled": return 0;
 		case "f": return 0;
 		case "down": return -1;
 		case "west": return -1;
@@ -496,6 +494,56 @@ public class DexUtils {
 		}
 	}
 	
+	/**
+	 * Get the integer version of the server's minecraft version Examples: MC 1.8.8
+	 * -> 8 MC 1.21.6 -> 21 MC 26.1.1 -> 26
+	 * 
+	 * @return
+	 */
+	public static int getServerVersionNumber() {
+		// Example str:
+		// 4616-Spigot-4a90bec-48244d7 (MC: 26.1.1)
+		// 1.21.6-48-4d854e6 (MC: 1.21.6)
+		int version = Dexterity.MIN_NONLEGACY_SERVER_VERSION;
+
+		String rawVersionStr = Bukkit.getVersion();
+		String versionStr = getStringBetween(rawVersionStr, "MC: ", ')');
+		if (versionStr == null)
+			return version;
+
+		if (versionStr.startsWith("1.")) { // ex. 1.21.6, 1.8.8
+			String numStr = getStringBetween(versionStr, "1.", '.');
+			try {
+				version = Integer.parseInt(numStr);
+			} catch (NumberFormatException ex) {
+
+			}
+		} else {
+			int firstDot = versionStr.indexOf('.');
+			String numStr;
+			if (firstDot == -1) numStr = versionStr;
+			else numStr = versionStr.substring(0, firstDot);
+			
+			try {
+				version = Integer.parseInt(numStr);
+			} catch (NumberFormatException ex) {
+			}
+		}
+
+		return version;
+	}
+
+	private static String getStringBetween(String str, String start, char endChar) {
+		int startIndex = str.indexOf(start);
+		if (startIndex == -1) return null;
+		int strStart = startIndex + start.length();
+		int endIndex = str.substring(strStart).indexOf(endChar);
+		if (endIndex == -1) return str.substring(startIndex);
+
+		int strEnd = strStart + endIndex;
+		return str.substring(strStart, strEnd);
+	}
+	
 	public static boolean isOrthonormal(Vector x, Vector y) {
 		double epsilon = 0.00000001;
 		return x.dot(y) < epsilon && x.length() - 1 < epsilon && y.length() - 1 < epsilon;
@@ -511,6 +559,12 @@ public class DexUtils {
 		Vector b_a = b.clone().subtract(a);
 		double theta = b_a.dot(x.clone().subtract(a)) / b_a.lengthSquared();
 		return a.clone().multiply(1-theta).add(b.clone().multiply(theta));
+	}
+	
+	public static double clamp(double num, double min, double max) {
+		if (num < min) return min;
+		if (num > max) return max;
+		return num;
 	}
 
 }

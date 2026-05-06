@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -58,9 +59,9 @@ import me.c7dev.dexterity.util.RotationPlan;
  */
 public class CommandHandler {
 	
-	private Dexterity plugin;
-	private DexterityAPI api;
-	private String noperm, cc, cc2, usageFormat, selectedStr, loclabelPrefix;
+	private final Dexterity plugin;
+	private final DexterityAPI api;
+	private final String noperm, cc, cc2, usageFormat, selectedStr, locLabelPrefix;
 	
 	public CommandHandler(Dexterity plugin) {
 		this.plugin = plugin;
@@ -71,7 +72,7 @@ public class CommandHandler {
 		noperm = plugin.getConfigString("no-permission");
 		usageFormat = plugin.getConfigString("usage-format");
 		selectedStr = plugin.getConfigString("selected");
-		loclabelPrefix = plugin.getConfigString("loclabel-prefix", "selection at");
+		locLabelPrefix = plugin.getConfigString("loclabel-prefix", "selection at");
 	}
 	
 	public boolean withPermission(Player p, String perm) {
@@ -171,23 +172,23 @@ public class CommandHandler {
 		} 
 		else {
 			s = s.replaceAll("\\Q%label%\\E", selectedStr);
-			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", loclabelPrefix + " " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0) + cc);
+			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", locLabelPrefix + " " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0) + cc);
 			else s = s.replaceAll("\\Q%loclabel%\\E", "");
 		}
 		return s;
 	}
 	
-	public void help(CommandContext ctx, String[] commands_str) {
+	public void help(CommandContext ctx, String[] commandsStr) {
 		int page = 0;
 		HashMap<String, Integer> attrs = ctx.getIntAttrs();
 		if (attrs.containsKey("page")) {
 			page = Math.max(attrs.get("page") - 1, 0);
 		} else if (ctx.getArgs().length >= 2) page = Math.max(DexUtils.parseInt(ctx.getArgs()[1]) - 1, 0);
-		int maxpage = DexUtils.maxPage(commands_str.length, 5);
+		int maxpage = DexUtils.maxPage(commandsStr.length, 5);
 		if (page >= maxpage) page = maxpage - 1;
 
 		ctx.getPlayer().sendMessage(plugin.getConfigString("help-page-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", "" + maxpage));
-		DexUtils.paginate(ctx.getPlayer(), commands_str, page, 5);
+		DexUtils.paginate(ctx.getPlayer(), commandsStr, page, 5);
 	}
 	
 	public void wand(CommandContext ct) {
@@ -203,10 +204,10 @@ public class CommandHandler {
 		if (!ct.getPlayer().hasPermission("dexterity.admin")) return;
 		DexterityDisplay d = getSelected(ct.getSession());
 		if (d == null) return;
-		boolean entity_centers = ct.getFlags().contains("entities");
+		boolean entityCenters = ct.getFlags().contains("entities");
 		for (DexBlock db : d.getBlocks()) {
 			api.markerPoint(db.getLocation(), Math.abs(db.getRoll()) < 0.000001 ? Color.LIME : Color.AQUA, 6);
-			if (entity_centers) api.markerPoint(db.getEntity().getLocation(), Color.ORANGE, 6);
+			if (entityCenters) api.markerPoint(db.getEntity().getLocation(), Color.ORANGE, 6);
 		}
 	}
 	
@@ -243,13 +244,13 @@ public class CommandHandler {
 	
 	public void debugKill(CommandContext ct) {
 		if (!ct.getPlayer().hasPermission("dexterity.admin")) return;
-		HashMap<String, Double> attrs_d = ct.getDoubleAttrs();
-		if (!attrs_d.containsKey("radius") && !attrs_d.containsKey("r")) {
+		HashMap<String, Double> doubleAttrs = ct.getDoubleAttrs();
+		if (!doubleAttrs.containsKey("radius") && !doubleAttrs.containsKey("r")) {
 			ct.getPlayer().sendMessage(plugin.getConfigString("must-enter-value").replaceAll("\\Q%value%\\E", "radius"));
 			return;
 		}
-		double radius = attrs_d.getOrDefault("radius", attrs_d.get("r"));
-		double minScale = attrs_d.getOrDefault("min_scale", Double.MIN_VALUE), maxScale = attrs_d.getOrDefault("max_scale", Double.MAX_VALUE);
+		double radius = doubleAttrs.getOrDefault("radius", doubleAttrs.get("r"));
+		double minScale = doubleAttrs.getOrDefault("min_scale", Double.MIN_VALUE), maxScale = doubleAttrs.getOrDefault("max_scale", Double.MAX_VALUE);
 		
 		List<Entity> entities = ct.getPlayer().getNearbyEntities(radius, radius, radius);
 		for (Entity e : entities) {
@@ -279,10 +280,10 @@ public class CommandHandler {
 		
 		ItemMeta meta = hand.getItemMeta();
 		NamespacedKey key = new NamespacedKey(plugin, "dex-schem-label");
-		String schem_name = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+		String schemName = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
 		
-		if (schem_name == null) p.sendMessage("§cThere is no Dexterity schematic associated with this item!");
-		else p.sendMessage(cc + "This item is tied to the " + cc2 + schem_name + cc + " item schematic.");
+		if (schemName == null) p.sendMessage("§cThere is no Dexterity schematic associated with this item!");
+		else p.sendMessage(cc + "This item is tied to the " + cc2 + schemName + cc + " item schematic.");
 	}
 	
 	public void paste(CommandContext ct) {
@@ -326,7 +327,7 @@ public class CommandHandler {
 		ct.getPlayer().sendMessage(getConfigString("consolidate-success", session));
 	}
 	
-	public void recenter(CommandContext ct) { //TODO: add -auto to recalculate
+	public void recenter(CommandContext ct) {
 		Player p = ct.getPlayer();
 		DexSession session = ct.getSession();
 		DexterityDisplay d = getSelected(session, "recenter");
@@ -369,7 +370,7 @@ public class CommandHandler {
 		DexterityDisplay d = getSelected(session, "move");
 		if (d == null) return;
 		
-		boolean to_center = ct.getFlags().contains("center"), 
+		boolean toCenter = ct.getFlags().contains("center"), 
 				x = ct.getFlags().contains("x") || ct.getDefaultArgs().contains("x"),
 				y = ct.getFlags().contains("y") || ct.getDefaultArgs().contains("y"),
 				z = ct.getFlags().contains("z") || ct.getDefaultArgs().contains("z");
@@ -381,7 +382,7 @@ public class CommandHandler {
 		}
 		
 		BlockTransaction t = new BlockTransaction(d);
-		d.align(to_center, x, y, z);
+		d.align(toCenter, x, y, z);
 		t.commit(d.getBlocks());
 		session.pushTransaction(t);
 		
@@ -418,12 +419,12 @@ public class CommandHandler {
 			}
 		}
 		else if (args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("reset")) {
-			HashMap<String, Double> attrs_d = ct.getDoubleAttrs();
+			HashMap<String, Double> doubleAttrs = ct.getDoubleAttrs();
 			boolean setScale = args.length >= 3 && args[2].equals("scale");
 			double defaultParam = setScale ? 1d : 0d;
-			double x = Math.abs(attrs_d.getOrDefault("x", attrs_d.getOrDefault("pitch", defaultParam))),
-					y = Math.abs(attrs_d.getOrDefault("y", attrs_d.getOrDefault("yaw", defaultParam))), 
-					z = Math.abs(attrs_d.getOrDefault("z", attrs_d.getOrDefault("roll", defaultParam)));
+			double x = Math.abs(doubleAttrs.getOrDefault("x", doubleAttrs.getOrDefault("pitch", defaultParam))),
+					y = Math.abs(doubleAttrs.getOrDefault("y", doubleAttrs.getOrDefault("yaw", defaultParam))), 
+					z = Math.abs(doubleAttrs.getOrDefault("z", doubleAttrs.getOrDefault("roll", defaultParam)));
 			
 			if (setScale) {
 				Vector currScale = d.getScale();
@@ -597,8 +598,8 @@ public class CommandHandler {
 			session.setSelected(d, false);
 		}
 		
-		boolean mergeafter = ct.getFlags().contains("merge"), nofollow = ct.getFlags().contains("nofollow");
-		if (mergeafter && !nofollow && !d.canHardMerge()) {
+		boolean mergeAfter = ct.getFlags().contains("merge"), noFollow = ct.getFlags().contains("nofollow");
+		if (mergeAfter && !noFollow && !d.canHardMerge()) {
 			p.sendMessage(getConfigString("cannot-clone", session));
 			return;
 		}
@@ -607,12 +608,12 @@ public class CommandHandler {
 		
 		if (!clone.getCenter().getWorld().getName().equals(p.getWorld().getName()) || clone.getCenter().distance(p.getLocation()) >= 80) clone.teleport(p.getLocation());
 		
-		if (nofollow) {
+		if (noFollow) {
 			p.sendMessage(getConfigString("clone-success", session));
 			session.setSelected(clone, false);
 		} else {
 			p.sendMessage(getConfigString("to-finish-edit", session));
-			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE, true);
+			session.startEdit(clone, mergeAfter ? EditType.CLONE_MERGE : EditType.CLONE, true);
 			session.startFollowing();
 		}
 	}
@@ -633,17 +634,17 @@ public class CommandHandler {
 			HashMap<String, Integer> attrs = ct.getIntAttrs();
 			if (attrs.containsKey("page")) page = Math.max(attrs.get("page") - 1, 0);
 			
-			List<String> owners_str = new ArrayList<>();
+			List<String> ownersStr = new ArrayList<>();
 			OfflinePlayer[] owners = d.getOwners();
-			if (owners.length == 0) owners_str.add(cc + "- " + cc2 + "*");
+			if (owners.length == 0) ownersStr.add(cc + "- " + cc2 + "*");
 			else {
-				for (OfflinePlayer owner : owners) owners_str.add(cc + "- " + cc2 + owner.getName());
+				for (OfflinePlayer owner : owners) ownersStr.add(cc + "- " + cc2 + owner.getName());
 			}
 			
-			int maxpage = DexUtils.maxPage(owners_str.size(), 5);
+			int maxpage = DexUtils.maxPage(ownersStr.size(), 5);
 			if (page >= maxpage) page = maxpage - 1;
 			p.sendMessage(plugin.getConfigString("owner-list-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", "" + maxpage));
-			DexUtils.paginate(p, owners_str.toArray(new String[owners_str.size()]), page, 5);
+			DexUtils.paginate(p, ownersStr.toArray(new String[ownersStr.size()]), page, 5);
 		}
 		else if (args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("remove")) {
 			boolean adding = args[1].equalsIgnoreCase("add");
@@ -673,8 +674,8 @@ public class CommandHandler {
 		if (d == null) return;
 		
 		Vector delta = new Vector();
-		HashMap<String, Double> attrs_d = ct.getDoubleAttrs();
-		int count = Math.abs(attrs_d.getOrDefault("count", 0d).intValue());
+		HashMap<String, Double> doubleAttrs = ct.getDoubleAttrs();
+		int count = Math.abs(doubleAttrs.getOrDefault("count", 0d).intValue());
 		
 		if (count == 0) { //check valid count
 			if (def != null) {
@@ -696,14 +697,14 @@ public class CommandHandler {
 			return;
 		}
 		
-		if (attrs_d.containsKey("x")) delta.setX(attrs_d.get("x"));
-		if (attrs_d.containsKey("y")) delta.setY(attrs_d.get("y"));
-		if (attrs_d.containsKey("z")) delta.setZ(attrs_d.get("z"));
-		if (attrs_d.containsKey("rx") || attrs_d.containsKey("ry") || attrs_d.containsKey("rz") || def != null) {
+		if (doubleAttrs.containsKey("x")) delta.setX(doubleAttrs.get("x"));
+		if (doubleAttrs.containsKey("y")) delta.setY(doubleAttrs.get("y"));
+		if (doubleAttrs.containsKey("z")) delta.setZ(doubleAttrs.get("z"));
+		if (doubleAttrs.containsKey("rx") || doubleAttrs.containsKey("ry") || doubleAttrs.containsKey("rz") || def != null) {
 			DexRotation rot = d.getRotationManager(true);
-			if (attrs_d.containsKey("rx")) delta.add(rot.getXAxis().multiply(attrs_d.get("rx")));
-			if (attrs_d.containsKey("ry")) delta.add(rot.getYAxis().multiply(attrs_d.get("ry")));
-			if (attrs_d.containsKey("rz")) delta.add(rot.getZAxis().multiply(attrs_d.get("rz")));
+			if (doubleAttrs.containsKey("rx")) delta.add(rot.getXAxis().multiply(doubleAttrs.get("rx")));
+			if (doubleAttrs.containsKey("ry")) delta.add(rot.getYAxis().multiply(doubleAttrs.get("ry")));
+			if (doubleAttrs.containsKey("rz")) delta.add(rot.getZAxis().multiply(doubleAttrs.get("rz")));
 		}
 		
 		if (delta.getX() == 0 && delta.getY() == 0 && delta.getZ() == 0) { //cannot be 0 delta
@@ -782,11 +783,11 @@ public class CommandHandler {
 		Animation anim = d.getAnimation(RideableAnimation.class);
 		
 		if (anim == null) {
-			HashMap<String, Double> attrs_d = ct.getDoubleAttrs();
-			double y_offset = attrs_d.getOrDefault("y_offset", 0d);
+			HashMap<String, Double> doubleAttrs = ct.getDoubleAttrs();
+			double yOffset = doubleAttrs.getOrDefault("y_offset", 0d);
 			
 			SitAnimation a = new SitAnimation(d);
-			if (y_offset != 0) a.setSeatOffset(new Vector(0, y_offset, 0));
+			if (yOffset != 0) a.setSeatOffset(new Vector(0, yOffset, 0));
 			d.addAnimation(a);
 			p.sendMessage(getConfigString("seat-success", session));
 		} else {
@@ -803,7 +804,7 @@ public class CommandHandler {
 		Player p = ct.getPlayer();
 		List<String> defs = ct.getDefaultArgs();
 		String[] args = ct.getArgs();
-		List<String> flags = ct.getFlags();
+		Set<String> flags = ct.getFlags();
 		
 		if (args.length <= 1) {
 			p.sendMessage(getUsage("cmd"));
@@ -820,22 +821,22 @@ public class CommandHandler {
 				return;
 			}
 
-			StringBuilder cmd_strb = new StringBuilder();
+			StringBuilder cmdStrBuilder = new StringBuilder();
 			boolean appending = false;
 			for (int i = 2; i < args.length; i++) {
 				String arg = args[i];
 				if (!appending && !arg.contains("=") && !arg.startsWith("-") && !arg.contains(":")) appending = true;
 				if (appending) {
-					cmd_strb.append(arg);
-					cmd_strb.append(" ");
+					cmdStrBuilder.append(arg);
+					cmdStrBuilder.append(" ");
 				}
 			}
-			String cmd_str = cmd_strb.toString().trim();
-			if (cmd_str.length() == 0) {
+			String cmdStr = cmdStrBuilder.toString().trim();
+			if (cmdStr.length() == 0) {
 				p.sendMessage("cmd-add");
 				return;
 			}
-			InteractionCommand command = new InteractionCommand(cmd_str);
+			InteractionCommand command = new InteractionCommand(cmdStr);
 
 			//set flags
 			if (flags.contains("left_only") || flags.contains("r")) {
@@ -846,8 +847,8 @@ public class CommandHandler {
 				command.setRight(true);
 			}
 			
-			boolean by_player = flags.contains("player") || flags.contains("p") || !p.hasPermission("dexterity.command.cmd.console");
-			command.setByPlayer(by_player);
+			boolean byPlayer = flags.contains("player") || flags.contains("p") || !p.hasPermission("dexterity.command.cmd.console");
+			command.setByPlayer(byPlayer);
 			
 			HashMap<String, String> attr_str = ct.getStringAttrs();
 			if (attr_str.containsKey("permission")) command.setPermission(attr_str.get("permission"));
@@ -931,7 +932,7 @@ public class CommandHandler {
 		if (d == null) return;
 		
 		Player p = ct.getPlayer();
-		List<String> flags = ct.getFlags();
+		Set<String> flags = ct.getFlags();
 		
 		boolean same_world = d.getCenter().getWorld().getName().equals(p.getWorld().getName());
 		if (ct.getArgs().length == 1 || !same_world) {
@@ -1052,7 +1053,7 @@ public class CommandHandler {
 	
 	public void mask(CommandContext ct) {
 		String[] args = ct.getArgs();
-		List<String> flags = ct.getFlags();
+		Set<String> flags = ct.getFlags();
 		DexSession session = ct.getSession();
 		Player p = ct.getPlayer();
 		
@@ -1084,7 +1085,7 @@ public class CommandHandler {
 		if (d == null) return;
 		
 		String[] args = ct.getArgs();
-		List<String> flags = ct.getFlags();
+		Set<String> flags = ct.getFlags();
 		Player p = ct.getPlayer();
 		
 		if (args.length < 2) {
@@ -1098,30 +1099,30 @@ public class CommandHandler {
 			plan.reset = true;
 			set = true;
 		}
-		HashMap<String, Double> attrs_d = ct.getDoubleAttrs();
-		List<String> defs_n = DexUtils.getDefaultAttributesWithFlags(args);
+		HashMap<String, Double> doubleAttrs = ct.getDoubleAttrs();
+		List<String> defsWithFlags = DexUtils.getDefaultAttributesWithFlags(args);
 		
-		plan.yawDeg = attrs_d.getOrDefault("yaw", Double.MAX_VALUE);
-		plan.pitchDeg = attrs_d.getOrDefault("pitch", Double.MAX_VALUE);
-		plan.rollDeg = attrs_d.getOrDefault("roll", Double.MAX_VALUE);
-		plan.yDeg = attrs_d.getOrDefault("y", Double.MAX_VALUE);
-		plan.xDeg = attrs_d.getOrDefault("x", Double.MAX_VALUE);
-		plan.zDeg = attrs_d.getOrDefault("z", Double.MAX_VALUE);
+		plan.yawDeg = doubleAttrs.getOrDefault("yaw", Double.MAX_VALUE);
+		plan.pitchDeg = doubleAttrs.getOrDefault("pitch", Double.MAX_VALUE);
+		plan.rollDeg = doubleAttrs.getOrDefault("roll", Double.MAX_VALUE);
+		plan.yDeg = doubleAttrs.getOrDefault("y", Double.MAX_VALUE);
+		plan.xDeg = doubleAttrs.getOrDefault("x", Double.MAX_VALUE);
+		plan.zDeg = doubleAttrs.getOrDefault("z", Double.MAX_VALUE);
 		
 		try {
 			switch(Math.min(ct.getDefaultArgs().size(), 6)) {
 			case 6:
-				if (plan.zDeg == Double.MAX_VALUE) plan.zDeg = Double.parseDouble(defs_n.get(5));
+				if (plan.zDeg == Double.MAX_VALUE) plan.zDeg = Double.parseDouble(defsWithFlags.get(5));
 			case 5:
-				if (plan.xDeg == Double.MAX_VALUE) plan.xDeg = Double.parseDouble(defs_n.get(4));
+				if (plan.xDeg == Double.MAX_VALUE) plan.xDeg = Double.parseDouble(defsWithFlags.get(4));
 			case 4: 
-				if (plan.yawDeg == Double.MAX_VALUE) plan.yawDeg = Double.parseDouble(defs_n.get(3));
+				if (plan.yawDeg == Double.MAX_VALUE) plan.yawDeg = Double.parseDouble(defsWithFlags.get(3));
 			case 3: 
-				if (plan.rollDeg == Double.MAX_VALUE) plan.rollDeg = Double.parseDouble(defs_n.get(2));
+				if (plan.rollDeg == Double.MAX_VALUE) plan.rollDeg = Double.parseDouble(defsWithFlags.get(2));
 			case 2: 
-				if (plan.pitchDeg == Double.MAX_VALUE) plan.pitchDeg = Double.parseDouble(defs_n.get(1));
+				if (plan.pitchDeg == Double.MAX_VALUE) plan.pitchDeg = Double.parseDouble(defsWithFlags.get(1));
 			case 1: 
-				if (plan.yDeg == Double.MAX_VALUE) plan.yDeg = Double.parseDouble(defs_n.get(0));
+				if (plan.yDeg == Double.MAX_VALUE) plan.yDeg = Double.parseDouble(defsWithFlags.get(0));
 			default:
 			}
 		} catch (Exception ex) {

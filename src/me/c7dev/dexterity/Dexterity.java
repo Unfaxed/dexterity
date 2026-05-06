@@ -74,7 +74,9 @@ public class Dexterity extends JavaPlugin {
 	private Material wandItem;
 	private ClickDataCache clickCache;
 	
-	public static final String defaultLangName = "en-US.yml";
+	public static final String DEFAULT_LANG_FILE = "en-US.yml";
+	
+	public static final int MIN_NONLEGACY_SERVER_VERSION = 21;
 		
 	@Override
 	public void onEnable() {
@@ -114,6 +116,7 @@ public class Dexterity extends JavaPlugin {
 	
 	@Override
 	public void onDisable() {
+		if (api == null) return; //plugin disabled from version check
 		api.clearAllMarkers();
 		saveDisplays();
 	}
@@ -184,15 +187,20 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	private boolean checkIfLegacy() {
+		int mcVersion = DexUtils.getServerVersionNumber();
+		if (mcVersion >= MIN_NONLEGACY_SERVER_VERSION) return true;
+		if (mcVersion < 19) return false;
+
 		Pattern verpattern = Pattern.compile("\\(MC: (.*)\\)");
 		Matcher matcher = verpattern.matcher(Bukkit.getVersion());
 		if (matcher.find()) {
 			String[] version = matcher.group(1).split("\\.");
 			if (version.length > 2) {
-				int vernum = Integer.parseInt(version[1]);
+				int verNum = Integer.parseInt(version[1]);
 				int sub = Integer.parseInt(version[2]);
-				if (vernum < 19 || (vernum == 19 && sub < 4)) return false;
-				legacy = (vernum < 20 || (vernum == 20 && sub < 2));
+				
+				if (verNum < 19 || (verNum == 19 && sub < 4)) return false;
+				legacy = (verNum < 20 || (verNum == 20 && sub < 2));
 			}
 		}
 		return true;
@@ -295,11 +303,11 @@ public class Dexterity extends JavaPlugin {
 	
 	private void loadLanguageFile(boolean isDefaultLang) {
 		String langName;
-		if (isDefaultLang) langName = defaultLangName;
+		if (isDefaultLang) langName = DEFAULT_LANG_FILE;
 		else {
 			langName = getConfig().getString("lang-file");
 			if (langName == null) {
-				langName = defaultLangName;
+				langName = DEFAULT_LANG_FILE;
 				Bukkit.getLogger().warning("No language file specified in config, loading default.");
 			}
 			if (!langName.contains(".")) langName += ".yml";
@@ -321,13 +329,13 @@ public class Dexterity extends JavaPlugin {
 			String[] pathSplit = dir.split("/");
 			for (int i = 0; i < pathSplit.length - 1; i++) langPath += pathSplit[i] + "/";
 
-			File df1 = new File(langPath + "/" + defaultLangName);
+			File df1 = new File(langPath + "/" + DEFAULT_LANG_FILE);
 			if (df1.exists()) {
-				defaultLang = YamlConfiguration.loadConfiguration(new InputStreamReader(getResource(defaultLangName)));
+				defaultLang = YamlConfiguration.loadConfiguration(new InputStreamReader(getResource(DEFAULT_LANG_FILE)));
 			} else { 
 				//from scratch
-				saveResource(defaultLangName, false);
-				File df2 = new File(this.getDataFolder().getAbsolutePath() + "/" + defaultLangName);
+				saveResource(DEFAULT_LANG_FILE, false);
+				File df2 = new File(this.getDataFolder().getAbsolutePath() + "/" + DEFAULT_LANG_FILE);
 				defaultLang = YamlConfiguration.loadConfiguration(df2);
 			}
 

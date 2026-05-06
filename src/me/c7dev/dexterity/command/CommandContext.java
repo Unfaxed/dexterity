@@ -2,7 +2,9 @@ package me.c7dev.dexterity.command;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.entity.Player;
 
@@ -15,14 +17,16 @@ import me.c7dev.dexterity.util.DexUtils;
  */
 public class CommandContext {
 
-	private Player p;
-	private String[] args;
-	private Dexterity plugin;
-	private DexSession session;
+	private final Player p;
+	private final String[] args;
+	private final Dexterity plugin;
+	private final DexSession session;
+	
 	private HashMap<String,Integer> attr;
 	private HashMap<String,String> attrStr;
 	private HashMap<String, Double> attrDoubles;
-	private List<String> flags, defs;
+	private List<String> defs;
+	private Set<String> flags;
 	
 	public CommandContext(Dexterity plugin, Player p, String[] args) {
 		if (plugin == null) throw new IllegalArgumentException("Plugin instance cannot be null!");
@@ -85,9 +89,9 @@ public class CommandContext {
 		return attrDoubles;
 	}
 	
-	public List<String> getFlags(){
+	public Set<String> getFlags(){
 		if (flags == null) {
-			flags = new ArrayList<String>();
+			flags = new HashSet<String>();
 			for (String arg : args) {
 				if (arg.startsWith("-")) flags.add(arg.toLowerCase().replaceFirst("-", ""));
 			}

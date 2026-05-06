@@ -25,18 +25,18 @@ import me.c7dev.dexterity.util.DexUtils;
  */
 public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
-	private Dexterity plugin;
-	private String cc, cc2;
-	private CommandHandler handler;
-	private HashMap<UUID, Long> cmdDelay = new HashMap<>();
-	private long cmdDelayMs;
+	private final Dexterity plugin;
+	private final String cc, cc2;
+	private final CommandHandler handler;
+	private final HashMap<UUID, Long> cmdDelay = new HashMap<>();
+	private final long cmdDelayMs;
 	
-	private String[] commands = {
+	private final String[] commands = {
 		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "item", "label", "list",
 		"mask", "merge", "move", "owner", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "schem", "seat", "select", 
 		"undo", "unsave", "tile", "wand"
 	};
-	private String[] command_strs = new String[commands.length];
+	private final String[] commandStrs = new String[commands.length];
 	
 	public DexterityCommand(Dexterity plugin) {
 		this.plugin= plugin;
@@ -48,7 +48,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		handler = new CommandHandler(plugin);
 		
 		for (int i = 0; i < commands.length; i++) {
-			command_strs[i] = cc + "- " + cc2 + "/d " + commands[i] + " §8- " + cc + plugin.getConfigString(commands[i] + "-description");
+			commandStrs[i] = cc + "- " + cc2 + "/d " + commands[i] + " §8- " + cc + plugin.getConfigString(commands[i] + "-description");
 		}
 	}
 	
@@ -96,7 +96,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		switch(args[0]) {
 		case "help":
 		case "?":
-			handler.help(ctx, command_strs);
+			handler.help(ctx, commandStrs);
 			return true;
 		case "wand":
 			handler.wand(ctx);
@@ -258,10 +258,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	}
 	
 	@Override
-	public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] argsr) {
-		argsr[0] = argsr[0].toLowerCase();
+	public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
+		args[0] = args[0].toLowerCase();
 		List<String> params = new ArrayList<String>();
-		for (String s : argsr) {
+		for (String s : args) {
 			String[] ssplit = s.split("=");
 			if (ssplit.length > 0) params.add(DexUtils.attrAlias(ssplit[0]));
 		}
@@ -269,13 +269,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		List<String> ret = new ArrayList<String>();
 		if (!sender.hasPermission("dexterity.command")) return ret;
 		
-		if (argsr.length <= 1) {
+		if (args.length <= 1) {
 			for (String s : commands) ret.add(s);
 			ret.add("cancel");
 			ret.add("paste");
 		}
 		
-		switch(argsr[0]) {
+		switch(args[0]) {
 		case "list":
 			ret.add("world=");
 			ret.add("-all");
@@ -286,23 +286,23 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		case "consolidate":
 		case "replace":
 		case "rep":
-			int argthreshold = argsr[0].equals("consolidate") ? 2 : 3;
-			if (argsr.length <= argthreshold && argsr[argsr.length - 1].length() >= 2) {
-				ret = DexUtils.materials(argsr[argsr.length - 1]);
+			int argThreshold = args[0].equals("consolidate") ? 2 : 3;
+			if (args.length <= argThreshold && args[args.length - 1].length() >= 2) {
+				ret = DexUtils.materials(args[args.length - 1]);
 			}
 			return ret;
 		case "mask":
-			String lastarg = argsr[argsr.length-1];
-			String[] larg_split = lastarg.split(",");
+			String lastarg = args[args.length-1];
+			String[] lastArgSplit = lastarg.split(",");
 
-			if (larg_split[larg_split.length-1].length() >= 2) {
-				StringBuilder prevarg_b = new StringBuilder();
-				for (int i = 0; i < larg_split.length-1; i++) {
-					prevarg_b.append(larg_split[i]);
-					prevarg_b.append(",");
+			if (lastArgSplit[lastArgSplit.length-1].length() >= 2) {
+				StringBuilder prevArgSB = new StringBuilder();
+				for (int i = 0; i < lastArgSplit.length-1; i++) {
+					prevArgSB.append(lastArgSplit[i]);
+					prevArgSB.append(",");
 				}
 				
-				ret = DexUtils.materials(larg_split[larg_split.length - 1], prevarg_b.toString());
+				ret = DexUtils.materials(lastArgSplit[lastArgSplit.length - 1], prevArgSB.toString());
 			}
 			ret.add("-none");
 			ret.add("-invert");
@@ -342,7 +342,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("rx=");
 			ret.add("ry=");
 			ret.add("rz=");
-			if (argsr[0].equals("move") || argsr[0].equals("m")) {
+			if (args[0].equals("move") || args[0].equals("m")) {
 				ret.add("north=");
 				ret.add("south=");
 				ret.add("east=");
@@ -375,38 +375,38 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			return ret;
 		case "command":
 		case "cmd":
-			if (argsr.length == 1) return ret;
-			if (argsr.length == 2) {
+			if (args.length == 1) return ret;
+			if (args.length == 2) {
 				ret.add("add");
 				ret.add("remove");
 				ret.add("list");
 			}
-			else if (argsr[1].equalsIgnoreCase("add")) {
-				if (argsr.length == 3) {
+			else if (args[1].equalsIgnoreCase("add")) {
+				if (args.length == 3) {
 					ret.add("permission=");
 					ret.add("-left_only");
 					ret.add("-right_only");
 					ret.add("-player");
 				}
-				else if (argsr.length == 4) addCmdIDs(ret, sender);
+				else if (args.length == 4) addCmdIDs(ret, sender);
 			}
-			else if (argsr[1].equalsIgnoreCase("remove")) addCmdIDs(ret, sender);
+			else if (args[1].equalsIgnoreCase("remove")) addCmdIDs(ret, sender);
 			
 			return ret;
 		case "owner":
-			if (argsr.length == 1) return ret;
-			if (argsr.length == 2) {
+			if (args.length == 1) return ret;
+			if (args.length == 2) {
 				ret.add("list");
 				ret.add("add");
 				ret.add("remove");
 			}
-			else if (argsr[1].equalsIgnoreCase("list")) {
-				if (argsr.length == 3) ret.add("page=");
+			else if (args[1].equalsIgnoreCase("list")) {
+				if (args.length == 3) ret.add("page=");
 			}
-			else if (argsr[1].equalsIgnoreCase("add")) {
+			else if (args[1].equalsIgnoreCase("add")) {
 				for (Player p : Bukkit.getOnlinePlayers()) ret.add(p.getName());
 			}
-			else if (argsr[1].equalsIgnoreCase("remove")) {
+			else if (args[1].equalsIgnoreCase("remove")) {
 				Player p = (Player) sender;
 				DexSession session = plugin.getEditSession(p.getUniqueId());
 				DexterityDisplay s = session.getSelected();
@@ -417,18 +417,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			return ret;
 		case "axis":
-			if (argsr.length == 1) return ret;
-			if (argsr.length == 2) {
+			if (args.length == 1) return ret;
+			if (args.length == 2) {
 				ret.add("show");
 				ret.add("off");
 				ret.add("reset");
 			}
-			else if (argsr.length >= 4 && (argsr[1].equalsIgnoreCase("set") || argsr[1].equalsIgnoreCase("reset"))) {
+			else if (args.length >= 4 && (args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("reset"))) {
 				ret.add("x=");
 				ret.add("y=");
 				ret.add("z=");
 			}
-			else if (argsr[1].equalsIgnoreCase("show") || argsr[1].equalsIgnoreCase("set") || argsr[1].equalsIgnoreCase("reset")) {
+			else if (args[1].equalsIgnoreCase("show") || args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("reset")) {
 				ret.add("rotation");
 				ret.add("scale");
 			}
@@ -439,22 +439,22 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			return ret;
 		case "schem":
 		case "schematic":
-			if (argsr.length == 1) return ret;
-			if (argsr.length == 2) {
+			if (args.length == 1) return ret;
+			if (args.length == 2) {
 				ret.add("load");
 				ret.add("save");
 				ret.add("delete");
 				ret.add("list");
 			}
-			else if (argsr.length == 3) {
-				if (argsr[1].equalsIgnoreCase("export") || argsr[1].equalsIgnoreCase("save")) {
+			else if (args.length == 3) {
+				if (args[1].equalsIgnoreCase("export") || args[1].equalsIgnoreCase("save")) {
 					ret.add("author=");
 					ret.add("-overwrite");
 				}
-				else if (argsr[1].equalsIgnoreCase("import") || argsr[1].equalsIgnoreCase("load") || argsr[1].equalsIgnoreCase("delete")) {
+				else if (args[1].equalsIgnoreCase("import") || args[1].equalsIgnoreCase("load") || args[1].equalsIgnoreCase("delete")) {
 					ret = handler.listSchematics();
 				}
-				else if (argsr[1].equalsIgnoreCase("list") || argsr[1].equalsIgnoreCase("lsit")) ret.add("page=");
+				else if (args[1].equalsIgnoreCase("list") || args[1].equalsIgnoreCase("lsit")) ret.add("page=");
 			}
 			return ret;
 		case "debug:centers":
@@ -469,7 +469,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			return ret;
 		}
 		
-		switch(argsr[0]) {
+		switch(args[0]) {
 		case "sel":
 		case "select":
 		case "remove":
@@ -483,8 +483,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			return ret;
 		}
 		
-		if (argsr[0].startsWith("debug:") && sender.hasPermission("dexterity.admin")) {
-			if (argsr.length == 1) {
+		if (args[0].startsWith("debug:") && sender.hasPermission("dexterity.admin")) {
+			if (args.length == 1) {
 				ret.add("debug:centers");
 				ret.add("debug:testnear");
 				ret.add("debug:resettransformation");

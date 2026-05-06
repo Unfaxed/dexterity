@@ -52,6 +52,8 @@ public class Schematic {
 		SEEK_VALUE, //until delimiter
 	}
 	
+	private static final double MIN_SCALE = 0.05, MAX_SCALE = 20; //prevent funny business with /d scale -set
+	
 	public static Schematic loadSchematicByName(Dexterity plugin, String name) {
 		return new Schematic(plugin, name);
 	}
@@ -353,7 +355,7 @@ public class Schematic {
 			case DISPLAY_DELIMITER:
 				workingDisplay.addBlock(blockState); //won't add if data not set
 				if (workingDisplay.getBlocks().size() > 0) {
-					displays.addLast(workingDisplay);
+					displays.add(workingDisplay);
 					workingDisplay = new SimpleDisplayState(plugin.getNextLabel(fileName));
 					blockState = newState(world);
 				}
@@ -361,7 +363,7 @@ public class Schematic {
 				
 			case DATA_END:
 				workingDisplay.addBlock(blockState);
-				if (workingDisplay.getBlocks().size() > 0) displays.addLast(workingDisplay);
+				if (workingDisplay.getBlocks().size() > 0) displays.add(workingDisplay);
 				return;
 				
 			case BLOCK_DELIMITER:
@@ -467,26 +469,25 @@ public class Schematic {
 		loc = loc.clone();
 		DexterityDisplay d = null;
 		Vector locv = loc.toVector();
-		double MIN_SCALE = 0.05, MAX_SCALE = 20; //prevent funny business with /d scale -set
 		
 		for (SimpleDisplayState display : displays) { //spawn displays
-			DexterityDisplay working_disp;
-			Vector scale = new Vector(Math.clamp(display.getScale().getX(), MIN_SCALE, MAX_SCALE),
-					Math.clamp(display.getScale().getY(), MIN_SCALE, MAX_SCALE),
-					Math.clamp(display.getScale().getZ(), MIN_SCALE, MAX_SCALE));
+			DexterityDisplay workingDisp;
+			Vector scale = new Vector(DexUtils.clamp(display.getScale().getX(), MIN_SCALE, MAX_SCALE),
+					DexUtils.clamp(display.getScale().getY(), MIN_SCALE, MAX_SCALE),
+					DexUtils.clamp(display.getScale().getZ(), MIN_SCALE, MAX_SCALE));
 			if (d == null) {
 				d = new DexterityDisplay(plugin, loc, scale, plugin.getNextLabel(display.getLabel()));
 				d.setBaseRotation(display.getRotationX(), display.getRotationY(), display.getRotationZ());
-				working_disp = d;
+				workingDisp = d;
 			}
 			else {
-				working_disp = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), plugin.getNextLabel(display.getLabel()));
-				d.addSubdisplay(working_disp);
+				workingDisp = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), plugin.getNextLabel(display.getLabel()));
+				d.addSubdisplay(workingDisp);
 			}
 			
 			for (DexBlockState state : display.getBlocks()) {
 				state.getLocation().setWorld(loc.getWorld());
-				state.setDisplay(working_disp);
+				state.setDisplay(workingDisp);
 				new DexBlock(state, locv);
 			}
 		}
