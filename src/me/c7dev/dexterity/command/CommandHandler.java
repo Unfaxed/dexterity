@@ -161,10 +161,10 @@ public class CommandHandler {
 		return getConfigString(dir, session, null);
 	}
 	
-	public String getConfigString(String dir, DexSession session, String override_label) {
+	public String getConfigString(String dir, DexSession session, String overrideLabel) {
 		String s = plugin.getConfigString(dir);
-		if (override_label != null) {
-			s = s.replaceAll("\\Q%label%\\E", override_label).replaceAll("\\Q%loclabel%\\E", override_label);
+		if (overrideLabel != null) {
+			s = s.replaceAll("\\Q%label%\\E", overrideLabel).replaceAll("\\Q%loclabel%\\E", overrideLabel);
 		}
 		else if (session != null && session.getSelected() != null && session.getSelected().getLabel() != null) {
 			String label = cc2 + session.getSelected().getLabel() + cc;
@@ -850,8 +850,8 @@ public class CommandHandler {
 			boolean byPlayer = flags.contains("player") || flags.contains("p") || !p.hasPermission("dexterity.command.cmd.console");
 			command.setByPlayer(byPlayer);
 			
-			HashMap<String, String> attr_str = ct.getStringAttrs();
-			if (attr_str.containsKey("permission")) command.setPermission(attr_str.get("permission"));
+			HashMap<String, String> strAttrs = ct.getStringAttrs();
+			if (strAttrs.containsKey("permission")) command.setPermission(strAttrs.get("permission"));
 
 			d.addCommand(command);
 			p.sendMessage(getConfigString("cmd-add-success", session).replaceAll("\\Q%id%\\E", "" + d.getCommandCount()));
@@ -934,9 +934,9 @@ public class CommandHandler {
 		Player p = ct.getPlayer();
 		Set<String> flags = ct.getFlags();
 		
-		boolean same_world = d.getCenter().getWorld().getName().equals(p.getWorld().getName());
-		if (ct.getArgs().length == 1 || !same_world) {
-			if (!same_world) d.teleport(p.getLocation());
+		boolean sameWorld = d.getCenter().getWorld().getName().equals(p.getWorld().getName());
+		if (ct.getArgs().length == 1 || !sameWorld) {
+			if (!sameWorld) d.teleport(p.getLocation());
 			session.startFollowing();
 			session.startEdit(d, EditType.TRANSLATE, false, new BlockTransaction(d));
 			p.sendMessage(getConfigString("to-finish-edit", session));
@@ -949,26 +949,19 @@ public class CommandHandler {
 		else if (flags.contains("here")) loc = DexUtils.blockLoc(p.getLocation()).add(0.5, 0.5, 0.5);
 		else loc = d.getCenter();
 					
-		HashMap<String,Double> attr_d = ct.getDoubleAttrs();
-		if (attr_d.containsKey("x")) loc.add(attr_d.get("x"), 0, 0);
-		if (attr_d.containsKey("y")) loc.add(0, attr_d.get("y"), 0);
-		if (attr_d.containsKey("z")) loc.add(0, 0, attr_d.get("z"));
-		if (attr_d.containsKey("rx") || attr_d.containsKey("ry") || attr_d.containsKey("rz")) {
-			DexRotation rot = d.getRotationManager(false);
-			Vector x, y, z;
-			if (rot == null) {
-				x = new Vector(1, 0, 0);
-				y = new Vector(0, 1, 0);
-				z = new Vector(0, 0, 1);
-			} else {
-				x = rot.getXAxis();
-				y = rot.getYAxis();
-				z = rot.getZAxis();
-			}
+		HashMap<String,Double> doubleAttrs = ct.getDoubleAttrs();
+		if (doubleAttrs.containsKey("x")) loc.add(doubleAttrs.get("x"), 0, 0);
+		if (doubleAttrs.containsKey("y")) loc.add(0, doubleAttrs.get("y"), 0);
+		if (doubleAttrs.containsKey("z")) loc.add(0, 0, doubleAttrs.get("z"));
+		if (doubleAttrs.containsKey("rx") || doubleAttrs.containsKey("ry") || doubleAttrs.containsKey("rz")) {
+			DexRotation rot = d.getRotationManager(true);
+			Vector x = rot.getXAxis(),
+					y = rot.getYAxis(),
+					z = rot.getZAxis();
 			
-			if (attr_d.containsKey("rx")) loc.add(x.multiply(attr_d.get("rx")));
-			if (attr_d.containsKey("ry")) loc.add(y.multiply(attr_d.get("ry")));
-			if (attr_d.containsKey("rz")) loc.add(z.multiply(attr_d.get("rz")));
+			if (doubleAttrs.containsKey("rx")) loc.add(x.multiply(doubleAttrs.get("rx")));
+			if (doubleAttrs.containsKey("ry")) loc.add(y.multiply(doubleAttrs.get("ry")));
+			if (doubleAttrs.containsKey("rz")) loc.add(z.multiply(doubleAttrs.get("rz")));
 		}
 					
 		d.teleport(loc);
@@ -1219,8 +1212,8 @@ public class CommandHandler {
 			
 			SchematicBuilder builder = new SchematicBuilder(plugin, d);
 			String author = p.getName();
-			HashMap<String, String> attr_str = ct.getStringAttrs();
-			if (attr_str.containsKey("author")) author = attr_str.get("author");
+			HashMap<String, String> strAttrs = ct.getStringAttrs();
+			if (strAttrs.containsKey("author")) author = strAttrs.get("author");
 			boolean overwrite = ct.getFlags().contains("overwrite");
 			
 			int res = builder.save(label, author, overwrite);
@@ -1397,7 +1390,7 @@ public class CommandHandler {
 		Player p = ct.getPlayer();
 		
 		Vector scale = new Vector();
-		String scale_str;
+		String scaleStr;
 		if (attrsd.containsKey("x") || attrsd.containsKey("y") || attrsd.containsKey("z")) {
 			float sx = Math.abs(attrsd.getOrDefault("x", set ? d.getScale().getX() : 1).floatValue());
 			float sy = Math.abs(attrsd.getOrDefault("y", set ? d.getScale().getY() : 1).floatValue());
@@ -1408,7 +1401,7 @@ public class CommandHandler {
 				return;
 			}
 			
-			scale_str = sx + ", " + sy + ", " + sz;
+			scaleStr = sx + ", " + sy + ", " + sz;
 			scale = new Vector(sx, sy, sz);
 		} else {
 			float scalar;
@@ -1418,26 +1411,26 @@ public class CommandHandler {
 				p.sendMessage(getConfigString("must-send-number", session));
 				return;
 			}
-			scale_str = "" + scalar;
+			scaleStr = "" + scalar;
 			scale = new Vector(scalar, scalar, scalar);
 		}
 		
 		ScaleTransaction t = new ScaleTransaction(d);
 		try {
-			Vector curr_scale = d.getScale();
-			Vector new_scale = set ? 
-					new Vector(scale.getX() / curr_scale.getX(), scale.getY() / curr_scale.getY(), scale.getZ() / curr_scale.getZ()) 
+			Vector currScale = d.getScale();
+			Vector newScale = set ? 
+					new Vector(scale.getX() / currScale.getX(), scale.getY() / currScale.getY(), scale.getZ() / currScale.getZ()) 
 					: scale.clone();
 			
-			double max_scale = plugin.getConfig().getDouble("max-scale"), min_scale = plugin.getConfig().getDouble("min-scale");
-			if (max_scale > 1 || min_scale > 0) {
+			double maxScale = plugin.getConfig().getDouble("max-scale"), minScale = plugin.getConfig().getDouble("min-scale");
+			if (maxScale > 1 || minScale > 0) {
 				for (DexBlock db : d.getBlocks()) {
-					Vector db_scale = DexUtils.hadimard(new_scale, db.getTransformation().getScale());
-					if (max_scale > 1 && DexUtils.max(db_scale) > max_scale) {
+					Vector dbScale = DexUtils.hadimard(newScale, db.getTransformation().getScale());
+					if (maxScale > 1 && DexUtils.max(dbScale) > maxScale) {
 						p.sendMessage(getConfigString("cannot-exceed-scale-limit", session));
 						return;
 					}
-					if (min_scale > 0 && DexUtils.min(new_scale) < min_scale) {
+					if (minScale > 0 && DexUtils.min(newScale) < minScale) {
 						p.sendMessage(getConfigString("cannot-exceed-scale-limit", session));
 						return;
 					}
@@ -1446,14 +1439,14 @@ public class CommandHandler {
 			
 			if (set) {
 				d.setScale(scale);
-				p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale_str));
+				p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scaleStr));
 			}
 			else {
 				d.scale(scale);
-				p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
+				p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scaleStr));
 			}
 		} catch (DexterityException ex) {
-			p.sendMessage(getConfigString("selection-too-complex", session).replaceAll("\\Q%scale%\\E", scale_str));
+			p.sendMessage(getConfigString("selection-too-complex", session).replaceAll("\\Q%scale%\\E", scaleStr));
 			return;
 		}
 
@@ -1476,10 +1469,10 @@ public class CommandHandler {
 		
 		NamespacedKey key = new NamespacedKey(plugin, "dex-schem-label");
 		ItemMeta meta = item.getItemMeta();
-		String schem_name = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
-		if (schem_name != null) {
+		String schemName = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+		if (schemName != null) {
 			for (String label : plugin.getDisplayLabels()) {
-				if (label.startsWith(schem_name)) {
+				if (label.startsWith(schemName)) {
 					p.sendMessage(plugin.getConfigString("cannot-delete-item-schem"));
 					return;
 				}
@@ -1489,7 +1482,7 @@ public class CommandHandler {
 			meta.getPersistentDataContainer().remove(key);
 			item.setItemMeta(meta);
 			
-			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + schem_name + ".dexterity");
+			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + schemName + ".dexterity");
 			if (f.exists()) {
 				try {
 					f.delete();
@@ -1511,11 +1504,11 @@ public class CommandHandler {
 		item.setAmount(1);
 
 		Random random = new Random();
-		String schem_label = DexUtils.getEffectiveLabel(d.getLabel()) + "-temp-" + Math.abs(random.nextInt()); 
-		SchematicBuilder schem= new SchematicBuilder(plugin, d);
-		schem.save(schem_label, p.getName(), true);
+		String schemLabel = DexUtils.getEffectiveLabel(d.getLabel()) + "-temp-" + Math.abs(random.nextInt()); 
+		SchematicBuilder schem = new SchematicBuilder(plugin, d);
+		schem.save(schemLabel, p.getName(), true);
 
-		d.setDropItem(item, schem_label);
+		d.setDropItem(item, schemLabel);
 		if (ct.getPlayer().getLocation().distance(d.getCenter()) < 10) {
 			d.dropNaturally();
 			session.setSelected(null, false);
@@ -1539,8 +1532,8 @@ public class CommandHandler {
 			p.sendMessage(plugin.getConfigString("display-not-found").replaceAll("\\Q%input%\\E", def));
 			return;
 		}
-		HashMap<String, String> attr_str = ct.getStringAttrs();
-		String new_group = attr_str.get("new_group");
+		HashMap<String, String> strAttrs = ct.getStringAttrs();
+		String newGroup = strAttrs.get("new_group");
 		if (d == parent || d.equals(parent)) {
 			p.sendMessage(getConfigString("must-be-different", session));
 			return;
@@ -1557,7 +1550,7 @@ public class CommandHandler {
 			p.sendMessage(getConfigString("already-merged", session));
 			return;
 		}
-		if (new_group != null && plugin.getDisplayLabels().contains(new_group)) {
+		if (newGroup != null && plugin.getDisplayLabels().contains(newGroup)) {
 			p.sendMessage(getConfigString("group-name-in-use", session));
 			return;
 		}
@@ -1575,11 +1568,11 @@ public class CommandHandler {
 			}
 			else p.sendMessage(getConfigString("failed-merge", session));
 		} else {
-			DexterityDisplay g = d.merge(parent, new_group);
+			DexterityDisplay g = d.merge(parent, newGroup);
 			if (g != null) {
 				session.setSelected(g, false);
-				if (new_group == null) p.sendMessage(getConfigString("merge-success", session).replaceAll("\\Q%parentlabel%\\E", parent.getLabel()));
-				else p.sendMessage(getConfigString("merge-success-newgroup", session).replaceAll("\\Q%input%\\E", new_group));
+				if (newGroup == null) p.sendMessage(getConfigString("merge-success", session).replaceAll("\\Q%parentlabel%\\E", parent.getLabel()));
+				else p.sendMessage(getConfigString("merge-success-newgroup", session).replaceAll("\\Q%input%\\E", newGroup));
 			} else p.sendMessage(getConfigString("failed-merge", session));
 		}
 	}
