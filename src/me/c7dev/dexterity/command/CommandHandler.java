@@ -40,6 +40,7 @@ import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.BuildTransaction;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.transaction.DeconvertTransaction;
+import me.c7dev.dexterity.transaction.GlowTransaction;
 import me.c7dev.dexterity.transaction.RemoveTransaction;
 import me.c7dev.dexterity.transaction.RotationTransaction;
 import me.c7dev.dexterity.transaction.ScaleTransaction;
@@ -751,23 +752,24 @@ public class CommandHandler {
 		String[] args = ct.getArgs();
 		String def = ct.getDefaultArg();
 		Player p = ct.getPlayer();
+		GlowTransaction t = new GlowTransaction(d);
 		
-		boolean propegate = false; //flags.contains("propegate");
 		if (args.length < 2 || (def != null && (def.equals("none") || def.equals("off"))) || ct.getFlags().contains("none") || ct.getFlags().contains("off")) {
-			d.setGlow(null, propegate);
+			d.setGlow(null, false);
 			p.sendMessage(getConfigString("glow-success-disable", session));
-			return;
+		} else {
+			ColorEnum c;
+			try {
+				c = ColorEnum.valueOf(def.toUpperCase());
+			} catch (Exception ex) {
+				p.sendMessage(getConfigString("unknown-color", session).replaceAll("\\Q%input%\\E", args[1].toUpperCase()));
+				return;
+			}
+			d.setGlow(c.getColor(), false);
+			if (d.getLabel() != null) p.sendMessage(getConfigString("glow-success", session));
 		}
-		
-		ColorEnum c;
-		try {
-			c = ColorEnum.valueOf(def.toUpperCase());
-		} catch (Exception ex) {
-			p.sendMessage(getConfigString("unknown-color", session).replaceAll("\\Q%input%\\E", args[1].toUpperCase()));
-			return;
-		}
-		d.setGlow(c.getColor(), propegate);
-		if (d.getLabel() != null) p.sendMessage(getConfigString("glow-success", session));
+		t.commit();
+		session.pushTransaction(t);
 	}
 	
 	public void seat(CommandContext ct) {

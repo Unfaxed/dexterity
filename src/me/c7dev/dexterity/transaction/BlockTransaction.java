@@ -83,9 +83,9 @@ public class BlockTransaction implements Transaction {
 		isCommitted = true;
 	}
 	
-	public void commitCenter(Location new_loc) {
-		if (new_loc == null) return;
-		newCenter = new_loc.clone();
+	public void commitCenter(Location newLoc) {
+		if (newLoc == null) return;
+		newCenter = newLoc.clone();
 	}
 	
 	public DexterityDisplay undo() {

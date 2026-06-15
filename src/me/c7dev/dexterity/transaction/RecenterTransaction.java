@@ -7,29 +7,29 @@ import me.c7dev.dexterity.displays.DexterityDisplay;
 
 public class RecenterTransaction implements Transaction {
 	
-	private Location old_loc, new_loc = null;
+	private Location oldLoc, newLoc = null;
 	private DexterityDisplay disp;
 	private boolean isUndone = false, isCommitted = false;
 	
 	public RecenterTransaction(DexterityDisplay d) {
 		disp = d;
-		old_loc = d.getCenter();
+		oldLoc = d.getCenter();
 	}
 	
 	public void commit(Location loc) {
 		if (isCommitted || loc == null) return;
-		new_loc = loc.clone();
+		newLoc = loc.clone();
 	}
 	
 	public DexterityDisplay undo() {
-		disp.setCenter(old_loc);
-		disp.getPlugin().api().markerPoint(old_loc, Color.AQUA, 4);
+		disp.setCenter(oldLoc);
+		disp.getPlugin().api().markerPoint(oldLoc, Color.AQUA, 4);
 		return null;
 	}
 	
 	public void redo() {
-		disp.setCenter(new_loc);
-		disp.getPlugin().api().markerPoint(new_loc, Color.AQUA, 4);
+		disp.setCenter(newLoc);
+		disp.getPlugin().api().markerPoint(newLoc, Color.AQUA, 4);
 	}
 	
 	public boolean isPossible() {

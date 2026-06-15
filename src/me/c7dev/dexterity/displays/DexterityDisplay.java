@@ -858,14 +858,7 @@ public class DexterityDisplay {
 	 * @param propegate true if descendant displays should receive this update
 	 */
 	public void setGlow(Color c, boolean propegate) {
-		if (c == null) {
-			for (DexBlock b : blocks) b.getEntity().setGlowing(false);
-		} else {
-			for (DexBlock b : blocks) {
-				b.getEntity().setGlowColorOverride(c);
-				b.getEntity().setGlowing(true);
-			}
-		}
+		for (DexBlock block : blocks) block.setGlow(c);
 		if (propegate) {
 			for (DexterityDisplay d : subdisplays) d.setGlow(c, true);
 		}

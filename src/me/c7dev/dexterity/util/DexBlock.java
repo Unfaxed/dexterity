@@ -3,6 +3,7 @@ package me.c7dev.dexterity.util;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -233,6 +234,18 @@ public class DexBlock {
 	 */
 	public float getRoll() {
 		return roll;
+	}
+	
+	/**
+	 * Set the glow of the block entity
+	 * @param glow
+	 */
+	public void setGlow(Color color) {
+		if (color == null) entity.setGlowing(false);
+		else {
+			entity.setGlowColorOverride(color);
+			entity.setGlowing(true);
+		}
 	}
 	
 	/**
