@@ -237,6 +237,14 @@ public class DexBlock {
 	}
 	
 	/**
+	 * Gets the color of glow override or null if not glowing
+	 * @return
+	 */
+	public Color getGlow() {
+		return entity.isGlowing() ? entity.getGlowColorOverride() : null;
+	}
+	
+	/**
 	 * Set the glow of the block entity
 	 * @param glow
 	 */

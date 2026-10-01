@@ -59,9 +59,9 @@ public class Schematic {
 	}
 
 	@Deprecated
-	public Schematic(Dexterity plugin, String file_name) {
-		this.fileName = file_name;
-		if (!file_name.endsWith(".dexterity")) file_name += ".dexterity";
+	public Schematic(Dexterity plugin, String fileName) {
+		this.fileName = fileName;
+		if (!fileName.endsWith(".dexterity")) fileName += ".dexterity";
 		this.plugin = plugin;
 		try {
 			sha256 = MessageDigest.getInstance("SHA-256");
@@ -70,13 +70,13 @@ public class Schematic {
 		}
 		
 		try {
-			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + file_name);
+			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + fileName);
 			if (f.exists()) {
 				
-				String[] req_sections = {"schema-version", "author", "charset", "objects", "data"};
+				String[] reqSections = {"schema-version", "author", "charset", "objects", "data"};
 				YamlConfiguration schem = YamlConfiguration.loadConfiguration(f);
 				
-				for (String req : req_sections) {
+				for (String req : reqSections) {
 					if (!schem.contains(req)) throw new DexterityException("Schematic must include '" + req + "' section!");
 				}
 				
@@ -85,22 +85,22 @@ public class Schematic {
 				
 				String hashval = schem.getString("hash");
 				if (hashval == null) throw new DexterityException("Schematic is missing hash");
-				String hashread = "NaCl, why not";
+				String hashRead = "NaCl, why not";
 				
 				//validate hash
-				StringBuilder hashinput = new StringBuilder("NaCl, why not");
+				StringBuilder hashInput = new StringBuilder("NaCl, why not");
 				try {
 					BufferedReader reader = new BufferedReader(new FileReader(f));
 					String line = reader.readLine();
-					hashread = hash(hashread);
+					hashRead = hash(hashRead);
 					
 					while(line != null) {
 						if (line.startsWith("#") || line.startsWith("hash")) {
 							line = reader.readLine();
 							continue;
 						}
-						hashread = hash(line + hashread);
-						hashinput.append(line);
+						hashRead = hash(line + hashRead);
+						hashInput.append(line);
 						line = reader.readLine();
 					}
 					
@@ -110,11 +110,11 @@ public class Schematic {
 					Bukkit.getLogger().severe("Could not read schematic hash!");
 				}
 				
-				if (!hashread.equals(hashval)) throw new DexterityException("Could not load schematic: Hashes do not match");
+				if (!hashRead.equals(hashval)) throw new DexterityException("Could not load schematic: Hashes do not match");
 				
 				load(schem);
 			} else {
-				throw new DexterityException(file_name + " does not exist in schematics folder!");
+				throw new DexterityException(fileName + " does not exist in schematics folder!");
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -295,7 +295,7 @@ public class Schematic {
 		
 		String[] charset = schem.getString("charset").split(";");
 		int index = 0;
-		boolean found_end_token = false;
+		boolean foundEndToken = false;
 		TokenType[] typevals = TokenType.values();
 		
 		//load charset - used to define objects
@@ -311,22 +311,22 @@ public class Schematic {
 			else {
 				TokenType type = typevals[index-256];
 				token = new Token(type);
-				if (type == TokenType.DATA_END) found_end_token = true;
+				if (type == TokenType.DATA_END) foundEndToken = true;
 			}
 			token.setTag(new BinaryTag(charstr));
 			addToken(token);
 			index++;
 		}
 		
-		if (!found_end_token) throw new DexterityException("Data does not contain required tokens!");
+		if (!foundEndToken) throw new DexterityException("Data does not contain required tokens!");
 		
 		//load objects header - this uses the ascii tokens to define more tokens that each have a type and value
-		String objectstr = schem.getString("objects");
-		decodeObjects(Base64.getDecoder().decode(objectstr));
+		String objectStr = schem.getString("objects");
+		decodeObjects(Base64.getDecoder().decode(objectStr));
 		
 		//load blocks of schematic
-		String datastr = schem.getString("data");
-		data = decode(Base64.getDecoder().decode(datastr));
+		String dataStr = schem.getString("data");
+		data = decode(Base64.getDecoder().decode(dataStr));
 		
 		loaded = true;
 		reloadBlocks(data);

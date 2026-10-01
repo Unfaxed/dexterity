@@ -3,7 +3,6 @@ package me.c7dev.dexterity.transaction;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 
 import me.c7dev.dexterity.displays.DexterityDisplay;
@@ -19,14 +18,10 @@ public class GlowTransaction implements Transaction {
 	public GlowTransaction(DexterityDisplay d) {
 		disp = d;
 		for (DexBlock block : d.getBlocks()) {
-			previousGlow.put(block.getUniqueId(), getTransactionGlow(block));
+			previousGlow.put(block.getUniqueId(), block.getGlow());
 		}
 	}
 	
-	private Color getTransactionGlow(DexBlock b) {
-		return b.getEntity().isGlowing() ? b.getEntity().getGlowColorOverride() : null;
-	}
-
 	@Override
 	public DexterityDisplay undo() {
 		if (!isCommitted()) throw new RuntimeException("Transaction must be committed");
@@ -34,11 +29,7 @@ public class GlowTransaction implements Transaction {
 		
 		for (DexBlock block : disp.getBlocks()) { //load previous glow
 			Color glow = previousGlow.get(block.getUniqueId());
-			if (glow == null) block.getEntity().setGlowing(false);
-			else {
-				block.getEntity().setGlowColorOverride(glow);
-				block.getEntity().setGlowing(true);
-			}
+			block.setGlow(glow);
 		}
 		
 		isUndone = true;
@@ -66,10 +57,10 @@ public class GlowTransaction implements Transaction {
 		DexBlock[] blocks = disp.getBlocks();
 		if (blocks.length == 0) throw new RuntimeException("Cannot commit an empty display");
 		boolean allSame = true;
-		allSameGlow = getTransactionGlow(blocks[0]);
+		allSameGlow = blocks[0].getGlow();
 		
-		for (DexBlock block : blocks) { //currently the command only supports setting all to the same glow, but this is not an assumption held the API.
-			Color glow = getTransactionGlow(block);
+		for (DexBlock block : blocks) { //currently the command only supports setting all to the same glow, but this is not an assumption held by the API.
+			Color glow = block.getGlow();
 			if (allSameGlow != null && !allSameGlow.equals(glow)) {
 				allSame = false; //not all the same
 				allSameGlow = null;
