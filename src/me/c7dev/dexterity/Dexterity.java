@@ -372,205 +372,204 @@ public class Dexterity extends JavaPlugin {
 		sessions.clear();
 		int displayCurrSize = displays.size();
 		
-		try {
-			
-			for (File f : folder.listFiles()) loadDisplay(f, true);
-			return displays.size() - displayCurrSize;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			Bukkit.getLogger().severe("Could not load Dexterity displays!");
-			return 0;
+		for (File f : folder.listFiles()) {
+			loadDisplay(f, true);
 		}
+		return displays.size() - displayCurrSize;
 	}
 	
 	private void loadDisplay(File f, boolean verbose) {
-		if (f == null || !f.getName().endsWith(".yml")) return;
-		String label = f.getName().replaceAll("\\.yml", "");
-		
-		FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
+		try {
+			if (f == null || !f.getName().endsWith(".yml")) return;
+			String label = f.getName().replaceAll("\\.yml", "");
 
-		//load entities by uuid
-		List<BlockDisplay> blocks = new ArrayList<>();
-		boolean missingBlocks = false;
-		for (String uuid_str : afile.getStringList("uuids")) {
-			UUID uuid = UUID.fromString(uuid_str);
-			Entity entity = Bukkit.getEntity(uuid);
-			
-			if (entity != null && entity instanceof BlockDisplay) {
-				blocks.add((BlockDisplay) entity);
-			} else {
-				unloadedUUIDs.put(uuid, label);
-				hasUnloadedDisplays = true;
-				missingBlocks = true;
-			}
-		}
-		if (missingBlocks) {
-			if (verbose) Bukkit.getLogger().warning("Some of the entities for display '" + label + "' are unloaded!");
-			return;
-		}
-		
-		//basic metadata
-		Location center = DexUtils.deserializeLocation(afile, "center");
-		double sx = afile.getDouble("scale-x");
-		double sy = afile.getDouble("scale-y");
-		double sz = afile.getDouble("scale-z");
-		float baseYaw = (float) afile.getDouble("yaw");
-		float basePitch = (float) afile.getDouble("pitch");
-		float baseRoll = (float) afile.getDouble("roll");
-		Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
-		DexterityDisplay disp = new DexterityDisplay(this, center, scale, label);
-		disp.setBaseRotation(baseYaw, basePitch, baseRoll);
-		
-		for (BlockDisplay bd : blocks) {
-			disp.addBlock(new DexBlock(bd, disp));
-		}
-		
-		//get click commands
-		ConfigurationSection cmdSection = afile.getConfigurationSection("commands");
-		if (cmdSection != null) {
-			for (String key : cmdSection.getKeys(false)) {
-				disp.addCommand(new InteractionCommand(afile.getConfigurationSection("commands." + key)));
-			}
-		}
-		
-		//seat
-		double seatYOffset = afile.getDouble("seat-offset", Double.MAX_VALUE);
-		if (seatYOffset < Double.MAX_VALUE) {
-			SitAnimation a = new SitAnimation(disp);
-			if (seatYOffset != 0) a.setSeatOffset(new Vector(0, seatYOffset, 0));
-			disp.addAnimation(a);
-		}
-		
-		//display drop item
-		String itemSchem = afile.getString("item-schem-name");
-		if (itemSchem != null) disp.setDropItem(afile.getItemStack("item"), itemSchem);
-		if (afile.getBoolean("unlisted", false)) disp.setListed(false);
-		
-		//display owners
-		List<String> ownerUUIDs = afile.getStringList("owners");
-		if (ownerUUIDs != null && ownerUUIDs.size() > 0) {
-			List<OfflinePlayer> owners = new ArrayList<>();
-			for (String u : ownerUUIDs) {
-				OfflinePlayer op = Bukkit.getOfflinePlayer(UUID.fromString(u));
-				if (op == null || op.getName() == null) continue;
-				owners.add(op);
-			}
-			disp.setOwners(owners);
-		}
-		
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				HashMap<OrientationKey, RollOffset> cache = new HashMap<>();
-				for (DexBlock db : disp.getBlocks()) {
-					db.loadRoll(cache);
+			FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
+
+			//load entities by uuid
+			List<BlockDisplay> blocks = new ArrayList<>();
+			boolean missingBlocks = false;
+			for (String uuid_str : afile.getStringList("uuids")) {
+				UUID uuid = UUID.fromString(uuid_str);
+				Entity entity = Bukkit.getEntity(uuid);
+
+				if (entity != null && entity instanceof BlockDisplay) {
+					blocks.add((BlockDisplay) entity);
+				} else {
+					unloadedUUIDs.put(uuid, label);
+					hasUnloadedDisplays = true;
+					missingBlocks = true;
 				}
 			}
-		}.runTaskAsynchronously(this);
-
-		//set parent display
-		String parentLabel = afile.getString("parent");
-		if (parentLabel != null) {
-			DexterityDisplay parent = getDisplay(parentLabel);
-			if (parent == null && verbose) Bukkit.getLogger().severe("Could not find parent display '" + parentLabel + "'!");
-			else {
-				parent.addSubdisplay(disp);
-				disp.setParent(parent);
+			if (missingBlocks) {
+				if (verbose) Bukkit.getLogger().warning("Some of the entities for display '" + label + "' are unloaded!");
+				return;
 			}
-		}
 
-		displays.put(disp.getLabel(), disp);
+			//basic metadata
+			Location center = DexUtils.deserializeLocation(afile, "center");
+			double sx = afile.getDouble("scale-x");
+			double sy = afile.getDouble("scale-y");
+			double sz = afile.getDouble("scale-z");
+			float baseYaw = (float) afile.getDouble("yaw");
+			float basePitch = (float) afile.getDouble("pitch");
+			float baseRoll = (float) afile.getDouble("roll");
+			Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
+			DexterityDisplay disp = new DexterityDisplay(this, center, scale, label);
+			disp.setBaseRotation(baseYaw, basePitch, baseRoll);
+
+			for (BlockDisplay bd : blocks) {
+				disp.addBlock(new DexBlock(bd, disp));
+			}
+
+			//get click commands
+			ConfigurationSection cmdSection = afile.getConfigurationSection("commands");
+			if (cmdSection != null) {
+				for (String key : cmdSection.getKeys(false)) {
+					disp.addCommand(new InteractionCommand(afile.getConfigurationSection("commands." + key)));
+				}
+			}
+
+			//seat
+			double seatYOffset = afile.getDouble("seat-offset", Double.MAX_VALUE);
+			if (seatYOffset < Double.MAX_VALUE) {
+				SitAnimation a = new SitAnimation(disp);
+				if (seatYOffset != 0) a.setSeatOffset(new Vector(0, seatYOffset, 0));
+				disp.addAnimation(a);
+			}
+
+			//display drop item
+			String itemSchem = afile.getString("item-schem-name");
+			if (itemSchem != null) disp.setDropItem(afile.getItemStack("item"), itemSchem);
+			if (afile.getBoolean("unlisted", false)) disp.setListed(false);
+
+			//display owners
+			List<String> ownerUUIDs = afile.getStringList("owners");
+			if (ownerUUIDs != null && ownerUUIDs.size() > 0) {
+				List<OfflinePlayer> owners = new ArrayList<>();
+				for (String u : ownerUUIDs) {
+					OfflinePlayer op = Bukkit.getOfflinePlayer(UUID.fromString(u));
+					if (op == null || op.getName() == null) continue;
+					owners.add(op);
+				}
+				disp.setOwners(owners);
+			}
+
+			new BukkitRunnable() {
+				@Override
+				public void run() {
+					HashMap<OrientationKey, RollOffset> cache = new HashMap<>();
+					for (DexBlock db : disp.getBlocks()) {
+						db.loadRoll(cache);
+					}
+				}
+			}.runTaskAsynchronously(this);
+
+			//set parent display
+			String parentLabel = afile.getString("parent");
+			if (parentLabel != null) {
+				DexterityDisplay parent = getDisplay(parentLabel);
+				if (parent == null && verbose) Bukkit.getLogger().severe("Could not find parent display '" + parentLabel + "'!");
+				else {
+					parent.addSubdisplay(disp);
+					disp.setParent(parent);
+				}
+			}
+
+			displays.put(disp.getLabel(), disp);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			Bukkit.getLogger().severe("Could not load saved display " + f.getName());
+		}
 	}
 	
 	public void saveDisplays() {
-		try {
-			for (DexterityDisplay disp : getDisplays()) {
-				saveDisplay(disp);
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		for (DexterityDisplay disp : getDisplays()) {
+			saveDisplay(disp);
 		}
 	}
 	
 	public void saveDisplay(DexterityDisplay disp) {
-		
-		if (!disp.isSaved() || disp.getLabel().length() == 0 || disp.getBlocksCount() == 0) return;
-		
-		File f = new File(this.getDataFolder().getAbsoluteFile() + "/displays/" + disp.getLabel() + ".yml");
 		try {
-			if (!f.exists()) f.createNewFile();
+			if (!disp.isSaved() || disp.getLabel().length() == 0 || disp.getBlocksCount() == 0) return;
+
+			File f = new File(this.getDataFolder().getAbsoluteFile() + "/displays/" + disp.getLabel() + ".yml");
+			try {
+				if (!f.exists()) f.createNewFile();
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				Bukkit.getLogger().severe("Could not save display " + disp.getLabel() + "!");
+				return;
+			}
+			FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
+			for (String s : afile.getKeys(false)) afile.set(s, null);
+
+			//basic metadata
+			afile.set("center", DexUtils.serializeLocation(disp.getCenter()));
+			if (disp.getScale().getX() != 1) afile.set("scale-x", disp.getScale().getX());
+			if (disp.getScale().getY() != 1) afile.set("scale-y", disp.getScale().getY());
+			if (disp.getScale().getZ() != 1) afile.set("scale-z", disp.getScale().getZ());
+
+			SitAnimation seat = (SitAnimation) disp.getAnimation(SitAnimation.class);
+			if (seat != null) afile.set("seat-offset", seat.getSeatOffset().getY());
+
+			//owners list
+			OfflinePlayer[] owners = disp.getOwners();
+			if (owners.length > 0) {
+				List<String> uuids = new ArrayList<>();
+				for (OfflinePlayer owner : owners) uuids.add(owner.getUniqueId().toString());
+				afile.set("owners", uuids);
+			}
+
+			if (disp.getRotationManager() != null) {
+				DexRotation rot = disp.getRotationManager();
+				AxisPair a = new AxisPair(rot.getXAxis(), rot.getZAxis());
+				Vector res = a.getPitchYawRoll();
+				if (res.getY() != 0) afile.set("yaw", res.getY());
+				if (res.getX() != 0) afile.set("pitch", res.getX());
+				if (res.getZ() != 0) afile.set("roll", res.getZ());
+			}
+
+			//click commands
+			if (disp.getCommandCount() > 0) {
+				afile.set("commands", null);
+				InteractionCommand[] cmds = disp.getCommands();
+				for (int i = 0; i < cmds.length; i++) {
+					afile.set("commands.cmd-" + (i+1), cmds[i].serialize());
+				}
+			}
+
+			//drop item
+			ItemStack item = disp.getDropItem();
+			if (item != null) {
+				afile.set("item-schem-name", disp.getDropItemSchematicName());
+				afile.set("item", item);
+			}
+			if (!disp.isListed()) afile.set("unlisted", true);
+
+			//save block uuids
+			List<String> uuids = new ArrayList<>();
+			DexBlock[] blocks = disp.getBlocks();
+			if (blocks.length > 0) {
+				for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
+				afile.set("uuids", uuids);
+			} else {
+				Bukkit.getLogger().warning("JAR modified, skipping save of " + disp.getLabel());
+				return;
+			}
+
+			if (disp.getParent() != null) afile.set("parent", disp.getParent().getLabel());
+
+			try {
+				afile.save(f);
+			} catch (IOException e) {
+				e.printStackTrace();
+				Bukkit.getLogger().severe("Could not save '" + disp.getLabel() + "' display!");
+			}
+
+			for (DexterityDisplay sub : disp.getSubdisplays()) saveDisplay(sub);
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			Bukkit.getLogger().severe("Could not save display " + disp.getLabel() + "!");
-			return;
 		}
-		FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
-		for (String s : afile.getKeys(false)) afile.set(s, null);
-		
-		//basic metadata
-		afile.set("center", disp.getCenter().serialize());
-		if (disp.getScale().getX() != 1) afile.set("scale-x", disp.getScale().getX());
-		if (disp.getScale().getY() != 1) afile.set("scale-y", disp.getScale().getY());
-		if (disp.getScale().getZ() != 1) afile.set("scale-z", disp.getScale().getZ());
-		
-		SitAnimation seat = (SitAnimation) disp.getAnimation(SitAnimation.class);
-		if (seat != null) afile.set("seat-offset", seat.getSeatOffset().getY());
-		
-		//owners list
-		OfflinePlayer[] owners = disp.getOwners();
-		if (owners.length > 0) {
-			List<String> uuids = new ArrayList<>();
-			for (OfflinePlayer owner : owners) uuids.add(owner.getUniqueId().toString());
-			afile.set("owners", uuids);
-		}
-
-		if (disp.getRotationManager() != null) {
-			DexRotation rot = disp.getRotationManager();
-			AxisPair a = new AxisPair(rot.getXAxis(), rot.getZAxis());
-			Vector res = a.getPitchYawRoll();
-			if (res.getY() != 0) afile.set("yaw", res.getY());
-			if (res.getX() != 0) afile.set("pitch", res.getX());
-			if (res.getZ() != 0) afile.set("roll", res.getZ());
-		}
-		
-		//click commands
-		if (disp.getCommandCount() > 0) {
-			afile.set("commands", null);
-			InteractionCommand[] cmds = disp.getCommands();
-			for (int i = 0; i < cmds.length; i++) {
-				afile.set("commands.cmd-" + (i+1), cmds[i].serialize());
-			}
-		}
-		
-		//drop item
-		ItemStack item = disp.getDropItem();
-		if (item != null) {
-			afile.set("item-schem-name", disp.getDropItemSchematicName());
-			afile.set("item", item);
-		}
-		if (!disp.isListed()) afile.set("unlisted", true);
-		
-		//save block uuids
-		List<String> uuids = new ArrayList<>();
-		DexBlock[] blocks = disp.getBlocks();
-		if (blocks.length > 0) {
-			for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
-			afile.set("uuids", uuids);
-		} else {
-			Bukkit.getLogger().warning("JAR modified, skipping save of " + disp.getLabel());
-			return;
-		}
-				
-		if (disp.getParent() != null) afile.set("parent", disp.getParent().getLabel());
-		
-		try {
-			afile.save(f);
-		} catch (IOException e) {
-			e.printStackTrace();
-			Bukkit.getLogger().severe("Could not save '" + disp.getLabel() + "' display!");
-		}
-		
-		for (DexterityDisplay sub : disp.getSubdisplays()) saveDisplay(sub);
 	}
 	
 	/**

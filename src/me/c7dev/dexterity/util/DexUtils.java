@@ -2,8 +2,9 @@ package me.c7dev.dexterity.util;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -262,8 +263,31 @@ public class DexUtils {
 		double z = config.getDouble(dir + ".z");
 		double yaw = config.getDouble(dir + ".yaw");
 		double pitch = config.getDouble(dir + ".pitch");
-		String world = config.getString(dir + ".world");
-		return new Location(Bukkit.getWorld(world), x, y, z, (float) yaw, (float) pitch);
+		
+		// TODO After stable, consider making it so that world name is no longer saved, and if uid does not match it considers it loaded froma different world.
+		// Ex. if plugin directory is copied from one server to another that has different worlds but that are named the same
+		World world = null;
+		String worldUidStr = config.getString(dir + ".world-uid");
+		if (worldUidStr != null) {
+			UUID worldUid = UUID.fromString(worldUidStr);
+			world = Bukkit.getWorld(worldUid);
+		}
+		if (world == null) {
+			String worldName = config.getString(dir + ".world");
+			world = Bukkit.getWorld(worldName);
+			if (world == null) {
+				throw new RuntimeException("World '" + worldName + "' could not be found!");
+			}
+		}
+		return new Location(world, x, y, z, (float) yaw, (float) pitch);
+	}
+	
+	public static Map<String,Object> serializeLocation(Location loc) {
+		Map<String,Object> serialized = loc.serialize();
+		serialized.remove("world_key");
+		serialized.put("world", loc.getWorld().getName());
+		serialized.put("world-uid", loc.getWorld().getUID().toString());
+		return serialized;
 	}
 	
 	public static Vector getBlockDimensions(BlockData b) {
