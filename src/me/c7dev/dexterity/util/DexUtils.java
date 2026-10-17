@@ -273,7 +273,7 @@ public class DexUtils {
 			world = Bukkit.getWorld(worldUid);
 		}
 		if (world == null) {
-			String worldName = config.getString(dir + ".world");
+			String worldName = config.getString(dir + ".world", "world");
 			world = Bukkit.getWorld(worldName);
 			if (world == null) {
 				throw new RuntimeException("World '" + worldName + "' could not be found!");
